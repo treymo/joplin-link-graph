@@ -35,50 +35,57 @@ async function buildGraph(data) {
 
   // append the svg object to the body of the page
   var svg = d3.select("#note_graph")
-  .append("svg")
-    .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)
-  .append("g")
-    .attr("transform",
-          "translate(" + margin.left + "," + margin.top + ")");
+    .append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+      .attr("transform",
+            "translate(" + margin.left + "," + margin.top + ")");
 
-  // Initialize the edges
-  var link = svg
+
+  var simulation = d3.forceSimulation()
+      .force("link", d3.forceLink().id(function(d) { return d.id; }))
+      .force("charge", d3.forceManyBody())
+      .force("center", d3.forceCenter(width / 2, height / 2));
+
+  var link = svg.append("g")
+      .attr("class", "links")
     .selectAll("line")
     .data(data.edges)
-    .enter()
-    .append("line")
+    .enter().append("line")
       .style("stroke", "#aaa")
 
-  // Initialize the nodes
-  var node = svg
-    .selectAll("circle")
+  var node = svg.append("g")
+      .attr("class", "nodes")
+    .selectAll("g")
     .data(data.nodes)
-    .enter()
-    .append("circle")
-      .attr("r", 20)
-      .attr("class", "note-node")
+    .enter().append("g")
+
+  var circles = node.append("circle")
+      .attr("r", 5)
       .style("fill", "#69b3a2")
+      .call(d3.drag()
+          .on("start", dragstarted)
+          .on("drag", dragged)
+          .on("end", dragended));
 
-  node.append("text")
-  .style("text-anchor", "middle")
-  .attr("y", 15)
-  .text(function (d) {
-    console.log("setting node text to: ", d)
-    return d.title
-  })
+  var lables = node.append("text")
+      .text(function(d) {
+        return d.title;
+      })
+      .attr('x', 6)
+      .attr('y', 3);
 
-  // Let's list the force we wanna apply on the network
-  var simulation = d3.forceSimulation(data.nodes)                 // Force algorithm is applied to data.nodes
-      .force("link", d3.forceLink()                               // This force provides links between nodes
-            .id(function(d) { return d.id; })                     // This provide  the id of a node
-            .links(data.edges)                                    // and this the list of links
-      )
-      .force("charge", d3.forceManyBody().strength(-400))         // This adds repulsion between nodes. Play with the -400 for the repulsion strength
-      .force("center", d3.forceCenter(width / 2, height / 2))     // This force attracts nodes to the center of the svg area
-      .on("end", ticked);
+  node.append("title")
+      .text(function(d) { return d.title; });
 
-  // This function is run at each iteration of the force algorithm, updating the nodes position.
+  simulation
+      .nodes(data.nodes)
+      .on("tick", ticked);
+
+  simulation.force("link")
+      .links(data.edges);
+
   function ticked() {
     link
         .attr("x1", function(d) { return d.source.x; })
@@ -87,7 +94,25 @@ async function buildGraph(data) {
         .attr("y2", function(d) { return d.target.y; });
 
     node
-         .attr("cx", function (d) { return d.x+6; })
-         .attr("cy", function(d) { return d.y-6; });
-  };
+        .attr("transform", function(d) {
+          return "translate(" + d.x + "," + d.y + ")";
+        })
+  }
+}
+
+function dragstarted(d) {
+  if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+  d.fx = d.x;
+  d.fy = d.y;
+}
+
+function dragged(d) {
+  d.fx = d3.event.x;
+  d.fy = d3.event.y;
+}
+
+function dragended(d) {
+  if (!d3.event.active) simulation.alphaTarget(0);
+  d.fx = null;
+  d.fy = null;
 }
