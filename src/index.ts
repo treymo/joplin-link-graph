@@ -1,0 +1,97 @@
+import joplin from 'api';
+
+function noteLinks(noteBody:string) {
+  const links = [];
+  // TODO: needs to handle resource links vs note links. see 4. Tips note for
+  // webclipper screenshot.
+  // https://stackoverflow.com/questions/37462126/regex-match-markdown-link
+  const linkRegexp = (/\[\]|\[.*?\]\(:\/(.*?)\)/g);
+  var match = linkRegexp.exec(noteBody);
+  while (match != null) {
+    if (match[1] !== undefined) {
+      links.push(match[1]);
+    }
+    match = linkRegexp.exec(noteBody);
+  }
+  return links;
+}
+
+// TODO: note type instead of Any
+async function getNotes(): Promise<Map<string, any>> {
+  const notes = await joplin.data.get(['notes'], {
+    fields: ['id', 'title', 'body'],
+    order_by: 'updated_time',
+    order_dir: 'DESC',
+  });
+
+  const noteMap = new Map();
+  for (const note of notes.items) {
+    var links = noteLinks(note.body);
+    noteMap.set(note.id, {title: note.title, links: links})
+  }
+  return noteMap;
+}
+
+joplin.plugins.register({
+  onStart: async function() {
+
+    const panels = joplin.views.panels;
+    const view = await (panels as any).create();
+
+    await panels.addScript(view, './d3.min.js');
+    await panels.addScript(view, './note-graph.js');
+
+    async function updateGraphView() {
+      const notes = await getNotes()
+      const data = {
+        "nodes": [],
+        "edges": [],
+      }
+      notes.forEach(function(value, id) {
+        data.nodes.push({
+          "id": id,
+          "title": value.title,
+        })
+
+        var links = value["links"]
+        if (links.length > 0) {
+          for (const link of links) {
+            data.edges.push({
+              "source": id,
+              "target": link,
+            });
+          }
+        }
+      });
+
+      panels.onMessage(view, (message:any) => {
+        if (message === "d3JSLoaded") {
+          const response = data;
+          console.info('PostMessagePlugin (Webview): Responding with:', response);
+          return response;
+        }
+      });
+
+      // TODO: move to settings
+      const fontSize = 10
+      const fontWeight = "normal"
+
+      await panels.setHtml(view, `
+                  <div class="outline-content">
+                      <p class="header">Links</p>
+                      <div class="container" style="
+                          font-size: ${fontSize}pt;
+                          font-weight: ${fontWeight};
+                      ">
+                        <div id="note_graph"></div>
+                      </div>
+        </div>
+      `);
+    };
+
+    await joplin.workspace.onNoteContentChange(() => {
+      updateGraphView();
+    });
+    updateGraphView();
+  },
+});
