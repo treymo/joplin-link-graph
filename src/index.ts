@@ -1,4 +1,5 @@
 import joplin from 'api';
+var deepEqual = require('deep-equal')
 
 function noteLinks(noteBody:string) {
   const links = [];
@@ -34,25 +35,37 @@ async function getNotes(): Promise<Map<string, any>> {
 
 joplin.plugins.register({
   onStart: async function() {
-
     const panels = joplin.views.panels;
     const view = await (panels as any).create();
+    var prevData = {};
 
     await panels.addScript(view, './d3.min.js');
     await panels.addScript(view, './note-graph.js');
 
     async function updateGraphView() {
-      const notes = await getNotes()
       const data = {
         "nodes": [],
         "edges": [],
       }
+      panels.onMessage(view, (message:any) => {
+        if (message === "d3JSLoaded") {
+          prevData = data
+          return data;
+        } else if (message === "haveUpdate?") {
+          var sameData = deepEqual(data, prevData)
+          if (!sameData) {
+            prevData = data
+            return data;
+          }
+        }
+      });
+
+      const notes = await getNotes()
       notes.forEach(function(value, id) {
         data.nodes.push({
           "id": id,
           "title": value.title,
         })
-
         var links = value["links"]
         if (links.length > 0) {
           for (const link of links) {
@@ -64,13 +77,6 @@ joplin.plugins.register({
         }
       });
 
-      panels.onMessage(view, (message:any) => {
-        if (message === "d3JSLoaded") {
-          const response = data;
-          console.info('PostMessagePlugin (Webview): Responding with:', response);
-          return response;
-        }
-      });
 
       // TODO: move to settings
       const fontSize = 10
@@ -90,6 +96,7 @@ joplin.plugins.register({
     };
 
     await joplin.workspace.onNoteContentChange(() => {
+      console.info("note content changed!")
       updateGraphView();
     });
     updateGraphView();

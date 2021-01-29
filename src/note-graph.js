@@ -15,18 +15,19 @@ whenAvailable("d3", async function(t) {
   const response = await webviewApi.postMessage('d3JSLoaded');
   console.info('webiew.js: got response:', response);
   buildGraph(response);
-});
 
-// TODO: handle node click
-/*document.addEventListener('click', async (event) => {
-	const element = event.target;
-	if (element.className === 'note-node') {
-		event.preventDefault();
-		console.info('webview.js: sending message');
-		const response = await webviewApi.postMessage('testingWebviewMessage');
-		console.info('webiew.js: got response:', response);
-	}
-})*/
+  setInterval(async function() {
+    try {
+      const response = await webviewApi.postMessage('haveUpdate?');
+    } catch(err) {
+      console.warn(err);
+    }
+    if (typeof response !== 'undefined') {
+      // TODO: update the graph, don't rebuild + append
+      await buildGraph(response);
+    }
+  }, 2000);
+});
 
 async function buildGraph(data) {
   var margin = {top: 10, right: 30, bottom: 30, left: 40},
@@ -44,8 +45,10 @@ async function buildGraph(data) {
 
 
   var simulation = d3.forceSimulation()
-      .force("link", d3.forceLink().id(function(d) { return d.id; }))
-      .force("charge", d3.forceManyBody())
+      .force("link", d3.forceLink()
+        .id(function(d) { return d.id; }))
+      .force("charge", d3.forceManyBody()
+        .strength(function(d) { return -500;}))
       .force("center", d3.forceCenter(width / 2, height / 2));
 
   var link = svg.append("g")
