@@ -30,9 +30,9 @@ whenAvailable("d3", async function(t) {
 
 var simulation, svg;
 function buildGraph(data) {
-  var margin = {top: 10, right: 30, bottom: 30, left: 40},
-    width = 400 - margin.left - margin.right,
-    height = 400 - margin.top - margin.bottom;
+  var margin = {top: 10, right: 10, bottom: 10, left: 10},
+    width = 500 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
 
   svg = d3.select("#note_graph")
     .append("svg")
@@ -48,6 +48,15 @@ function buildGraph(data) {
       .force("charge", d3.forceManyBody()
         .strength(function(d) { return -500;}))
       .force("center", d3.forceCenter(width / 2, height / 2));
+
+  //add zoom capabilities
+  var zoom_handler = d3.zoom()
+      .on("zoom", zoom_actions);
+  zoom_handler(d3.select("svg"));
+
+  function zoom_actions(event) {
+      svg.attr("transform", event.transform)
+  }
 
   update(data);
 }

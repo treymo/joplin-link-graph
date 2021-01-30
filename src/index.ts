@@ -40,6 +40,7 @@ joplin.plugins.register({
     var prevData = {};
 
     await panels.addScript(view, './d3.min.js');
+    await panels.addScript(view, './webview.css');
     await panels.addScript(view, './note-graph.js');
 
     async function updateGraphView() {
@@ -90,7 +91,7 @@ joplin.plugins.register({
 
       await panels.setHtml(view, `
                   <div class="outline-content">
-                      <p class="header">Links</p>
+                      <p class="header">Note Graph</p>
                       <div class="container" style="
                           font-size: ${fontSize}pt;
                           font-weight: ${fontWeight};
