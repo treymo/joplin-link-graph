@@ -72,10 +72,13 @@ joplin.plugins.register({
         var links = value["links"]
         if (links.length > 0) {
           for (const link of links) {
-            data.edges.push({
-              "source": id,
-              "target": link,
-            });
+            // Ignore links that don't link to notes.
+            if (notes.has(link)) {
+              data.edges.push({
+                "source": id,
+                "target": link,
+              });
+            }
           }
         }
       });
