@@ -48,16 +48,18 @@ joplin.plugins.register({
         "edges": [],
       }
       panels.onMessage(view, (message:any) => {
-        if (message === "d3JSLoaded") {
+        if (message.name === "d3JSLoaded") {
           prevData = data
           return data;
-        } else if (message === "haveUpdate?") {
+        } else if (message.name === "checkForUpdate") {
           var sameData = deepEqual(data, prevData)
           if (!sameData) {
             prevData = data
             return data;
           }
           return undefined;
+        } else if (message.name === "navigateTo") {
+          joplin.commands.execute('openNote', message.id)
         }
       });
 

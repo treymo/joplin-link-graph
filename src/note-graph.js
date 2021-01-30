@@ -12,12 +12,13 @@ function whenAvailable(name, callback) {
 };
 
 whenAvailable("d3", async function(t) {
-  const response = await webviewApi.postMessage('d3JSLoaded');
+  const response = await webviewApi.postMessage({name: 'd3JSLoaded'});
   buildGraph(response);
 
   setInterval(async function() {
     try {
-      const updatedData = await webviewApi.postMessage('haveUpdate?');
+      const updatedData = await webviewApi.postMessage(
+        {name: 'checkForUpdate'});
       if (typeof updatedData !== 'undefined') {
         await update(updatedData);
       }
@@ -56,6 +57,14 @@ function update(data) {
   svg.selectAll(".nodes").remove();
   svg.selectAll(".links").remove();
 
+  // Draw links.
+  var link = svg.append("g")
+      .attr("class", "links")
+    .selectAll("line")
+    .data(data.edges)
+    .enter().append("line")
+      .style("stroke", "#aaa")
+
   // Draw nodes.
   var node = svg.append("g")
       .attr("class", "nodes")
@@ -66,6 +75,12 @@ function update(data) {
   var circles = node.append("circle")
       .attr("r", 8)
       .style("fill", "#69b3a2")
+      .on('click', function(d, i) {
+          webviewApi.postMessage({
+            name: 'navigateTo',
+            id: i.id,
+          });
+        })
 
   node.append("text")
       .text(function(d) {
@@ -76,14 +91,6 @@ function update(data) {
 
   node.append("title")
       .text(function(d) { return d.title; });
-
-  // Draw links.
-  var link = svg.append("g")
-      .attr("class", "links")
-    .selectAll("line")
-    .data(data.edges)
-    .enter().append("line")
-      .style("stroke", "#aaa")
 
 	//	update simulation nodes, links, and alpha
 	simulation
