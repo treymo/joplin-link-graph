@@ -84,19 +84,11 @@ joplin.plugins.register({
         }
       });
 
-
-      // TODO: move to settings
-      const fontSize = 10
-      const fontWeight = "normal"
-
       await panels.setHtml(view, `
                   <div class="outline-content">
                       <p class="header">Note Graph</p>
-                      <div class="container" style="
-                          font-size: ${fontSize}pt;
-                          font-weight: ${fontWeight};
-                      ">
-                        <div id="note_graph"></div>
+                      <div class="container">
+                        <div id="note_graph"/>
                       </div>
         </div>
       `);

@@ -71,7 +71,6 @@ function update(data) {
     .selectAll("line")
     .data(data.edges)
     .enter().append("line")
-      .style("stroke", "#aaa")
 
   // Draw nodes.
   var node = svg.append("g")
@@ -81,8 +80,7 @@ function update(data) {
     .enter().append("g")
 
   var circles = node.append("circle")
-      .attr("r", 8)
-      .style("fill", "#69b3a2")
+      .attr("r", 10)
       .on('click', function(d, i) {
           webviewApi.postMessage({
             name: 'navigateTo',
@@ -91,14 +89,12 @@ function update(data) {
         })
 
   node.append("text")
+      .attr("class", "node-label")
       .text(function(d) {
         return d.title;
       })
-      .attr('x', 6)
-      .attr('y', 3);
-
-  node.append("title")
-      .text(function(d) { return d.title; });
+      .attr('x', 11)
+      .attr('y', 5);
 
 	//	update simulation nodes, links, and alpha
 	simulation
