@@ -64,8 +64,8 @@ function update(data) {
     .enter().append("g")
 
   var circles = node.append("circle")
-      .attr("r", 5)
-      .style("fill", "#69b3a2");
+      .attr("r", 8)
+      .style("fill", "#69b3a2")
 
   node.append("text")
       .text(function(d) {
