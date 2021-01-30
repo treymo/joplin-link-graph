@@ -13,29 +13,27 @@ function whenAvailable(name, callback) {
 
 whenAvailable("d3", async function(t) {
   const response = await webviewApi.postMessage('d3JSLoaded');
-  console.info('webiew.js: got response:', response);
   buildGraph(response);
 
   setInterval(async function() {
     try {
-      const response = await webviewApi.postMessage('haveUpdate?');
+      const updatedData = await webviewApi.postMessage('haveUpdate?');
+      if (typeof updatedData !== 'undefined') {
+        await update(updatedData);
+      }
     } catch(err) {
-      console.warn(err);
-    }
-    if (typeof response !== 'undefined') {
-      // TODO: update the graph, don't rebuild + append
-      await buildGraph(response);
+      console.warn("error getting data update: ", err);
     }
   }, 2000);
 });
 
-async function buildGraph(data) {
+var simulation, svg;
+function buildGraph(data) {
   var margin = {top: 10, right: 30, bottom: 30, left: 40},
     width = 400 - margin.left - margin.right,
     height = 400 - margin.top - margin.bottom;
 
-  // append the svg object to the body of the page
-  var svg = d3.select("#note_graph")
+  svg = d3.select("#note_graph")
     .append("svg")
       .attr("width", width + margin.left + margin.right)
       .attr("height", height + margin.top + margin.bottom)
@@ -43,21 +41,22 @@ async function buildGraph(data) {
       .attr("transform",
             "translate(" + margin.left + "," + margin.top + ")");
 
-
-  var simulation = d3.forceSimulation()
+  simulation = d3.forceSimulation()
       .force("link", d3.forceLink()
         .id(function(d) { return d.id; }))
       .force("charge", d3.forceManyBody()
         .strength(function(d) { return -500;}))
       .force("center", d3.forceCenter(width / 2, height / 2));
 
-  var link = svg.append("g")
-      .attr("class", "links")
-    .selectAll("line")
-    .data(data.edges)
-    .enter().append("line")
-      .style("stroke", "#aaa")
+  update(data);
+}
 
+function update(data) {
+  // Remove nodes and links from the last graph
+  svg.selectAll(".nodes").remove();
+  svg.selectAll(".links").remove();
+
+  // Draw nodes.
   var node = svg.append("g")
       .attr("class", "nodes")
     .selectAll("g")
@@ -66,13 +65,9 @@ async function buildGraph(data) {
 
   var circles = node.append("circle")
       .attr("r", 5)
-      .style("fill", "#69b3a2")
-      .call(d3.drag()
-          .on("start", dragstarted)
-          .on("drag", dragged)
-          .on("end", dragended));
+      .style("fill", "#69b3a2");
 
-  var lables = node.append("text")
+  node.append("text")
       .text(function(d) {
         return d.title;
       })
@@ -82,12 +77,23 @@ async function buildGraph(data) {
   node.append("title")
       .text(function(d) { return d.title; });
 
-  simulation
-      .nodes(data.nodes)
-      .on("tick", ticked);
+  // Draw links.
+  var link = svg.append("g")
+      .attr("class", "links")
+    .selectAll("line")
+    .data(data.edges)
+    .enter().append("line")
+      .style("stroke", "#aaa")
 
-  simulation.force("link")
-      .links(data.edges);
+	//	update simulation nodes, links, and alpha
+	simulation
+		.nodes(data.nodes)
+		.on("tick", ticked);
+
+  	simulation.force("link")
+  		.links(data.edges);
+
+  	simulation.alpha(1).alphaTarget(0).restart();
 
   function ticked() {
     link
@@ -101,21 +107,4 @@ async function buildGraph(data) {
           return "translate(" + d.x + "," + d.y + ")";
         })
   }
-}
-
-function dragstarted(d) {
-  if (!d3.event.active) simulation.alphaTarget(0.3).restart();
-  d.fx = d.x;
-  d.fy = d.y;
-}
-
-function dragged(d) {
-  d.fx = d3.event.x;
-  d.fy = d3.event.y;
-}
-
-function dragended(d) {
-  if (!d3.event.active) simulation.alphaTarget(0);
-  d.fx = null;
-  d.fy = null;
 }

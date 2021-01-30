@@ -57,6 +57,7 @@ joplin.plugins.register({
             prevData = data
             return data;
           }
+          return undefined;
         }
       });
 
@@ -96,7 +97,6 @@ joplin.plugins.register({
     };
 
     await joplin.workspace.onNoteContentChange(() => {
-      console.info("note content changed!")
       updateGraphView();
     });
     updateGraphView();
