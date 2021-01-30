@@ -24,7 +24,7 @@ whenAvailable("d3", async function(t) {
     } catch(err) {
       console.warn("error getting data update: ", err);
     }
-  }, 2000);
+  }, 500);
 });
 
 var simulation, svg;
