@@ -4,6 +4,8 @@ This Joplin plugin provides a UI for viewing all links between Joplin notes.
 
 **Note:** Requires Joplin 1.7.0+
 
+Combine this plugin with the Joplin Backlinks and Quicklinks for Zettelkasten-type functionality!
+
 ## Basic Features
 
 * View all links between notes in a graph view - the graph automatically refreshes when you change a note
