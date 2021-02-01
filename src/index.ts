@@ -1,7 +1,7 @@
 import joplin from 'api';
 var deepEqual = require('deep-equal')
 
-function noteLinks(noteBody:string) {
+function getAllLinksForNote(noteBody:string) {
   const links = [];
   // TODO: needs to handle resource links vs note links. see 4. Tips note for
   // webclipper screenshot.
@@ -17,17 +17,24 @@ function noteLinks(noteBody:string) {
   return links;
 }
 
-// TODO: note type instead of Any
+// Fetches every note.
 async function getNotes(): Promise<Map<string, any>> {
-  const notes = await joplin.data.get(['notes'], {
-    fields: ['id', 'title', 'body'],
-    order_by: 'updated_time',
-    order_dir: 'DESC',
-  });
+  var allNotes = []
+  var page_num = 1;
+  do {
+    var notes = await joplin.data.get(['notes'], {
+      fields: ['id', 'title', 'body'],
+      order_by: 'updated_time',
+      order_dir: 'DESC',
+      page: page_num,
+    });
+    allNotes.push(...notes.items);
+    page_num++;
+  } while (notes.has_more)
 
   const noteMap = new Map();
-  for (const note of notes.items) {
-    var links = noteLinks(note.body);
+  for (const note of allNotes) {
+    var links = getAllLinksForNote(note.body);
     noteMap.set(note.id, {title: note.title, links: links})
   }
   return noteMap;
