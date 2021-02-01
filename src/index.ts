@@ -60,6 +60,10 @@ joplin.plugins.register({
           prevData = data
           return data;
         } else if (message.name === "checkForUpdate") {
+          if (message.force === true) {
+            prevData = data
+            return data;
+          }
           var sameData = deepEqual(data, prevData)
           if (!sameData) {
             prevData = data
@@ -93,7 +97,10 @@ joplin.plugins.register({
 
       await panels.setHtml(view, `
                   <div class="outline-content">
-                      <p class="header">Note Graph</p>
+                      <div class="header-area">
+                        <button onclick="refreshData(true)">Redraw Graph</button>
+                        <p class="header">Note Graph</p>
+                      </div>
                       <div class="container">
                         <div id="note_graph"/>
                       </div>

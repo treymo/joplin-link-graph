@@ -11,20 +11,27 @@ function whenAvailable(name, callback) {
     }, interval);
 };
 
+async function refreshData(force) {
+  try {
+    const updatedData = await webviewApi.postMessage(
+      {
+        name: 'checkForUpdate',
+        force: typeof force !== 'undefined' ? true : false,
+      });
+    if (typeof updatedData !== 'undefined') {
+      await update(updatedData);
+    }
+  } catch(err) {
+    console.warn("error getting data update: ", err);
+  }
+}
+
 whenAvailable("d3", async function(t) {
   const response = await webviewApi.postMessage({name: 'd3JSLoaded'});
   buildGraph(response);
 
   setInterval(async function() {
-    try {
-      const updatedData = await webviewApi.postMessage(
-        {name: 'checkForUpdate'});
-      if (typeof updatedData !== 'undefined') {
-        await update(updatedData);
-      }
-    } catch(err) {
-      console.warn("error getting data update: ", err);
-    }
+    await refreshData()
   }, 500);
 });
 
