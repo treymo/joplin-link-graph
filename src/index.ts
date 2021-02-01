@@ -1,5 +1,8 @@
 import joplin from 'api';
+import { SettingItemType } from 'api/types';
 var deepEqual = require('deep-equal')
+
+const DEFAULT_MAX_NOTES = 700;
 
 function getAllLinksForNote(noteBody:string) {
   const links = [];
@@ -21,16 +24,18 @@ function getAllLinksForNote(noteBody:string) {
 async function getNotes(): Promise<Map<string, any>> {
   var allNotes = []
   var page_num = 1;
+  const maxNotes = await joplin.settings.value("maxNodesOnGraph")
   do {
     var notes = await joplin.data.get(['notes'], {
       fields: ['id', 'title', 'body'],
       order_by: 'updated_time',
       order_dir: 'DESC',
+      limit: maxNotes < 100 ? maxNotes : 100,
       page: page_num,
     });
     allNotes.push(...notes.items);
     page_num++;
-  } while (notes.has_more)
+  } while (notes.has_more && allNotes.length < maxNotes)
 
   const noteMap = new Map();
   for (const note of allNotes) {
@@ -40,8 +45,27 @@ async function getNotes(): Promise<Map<string, any>> {
   return noteMap;
 }
 
+async function createSettings() {
+    await joplin.settings.registerSection('graph-ui.settings', {
+      label: 'Graph UI',
+      // Check out https://forkaweso.me/Fork-Awesome/icons/ for available icons.
+      iconName: 'fas fa-sitemap'
+    });
+
+     await joplin.settings.registerSetting('maxNodesOnGraph', {
+      value: DEFAULT_MAX_NOTES,
+      type: SettingItemType.Int,
+      section: 'graph-ui.settings',
+      public: true,
+      label: 'Max nodes in graph',
+      description: 'Maximun number of nodes shown in the graph. Most recent nodes have priority.'
+    });
+
+}
+
 joplin.plugins.register({
   onStart: async function() {
+    await createSettings();
     const panels = joplin.views.panels;
     const view = await (panels as any).create();
     var prevData = {};
