@@ -11,10 +11,13 @@ function whenAvailable(name, callback) {
     }, interval);
 };
 
-async function refreshData() {
+async function refreshData(force) {
   try {
     const updatedData = await webviewApi.postMessage(
-      {name: 'checkForUpdate'});
+      {
+        name: 'checkForUpdate',
+        force: typeof force !== 'undefined' ? true : false,
+      });
     if (typeof updatedData !== 'undefined') {
       await update(updatedData);
     }
