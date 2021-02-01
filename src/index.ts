@@ -93,6 +93,7 @@ joplin.plugins.register({
 
       await panels.setHtml(view, `
                   <div class="outline-content">
+                      <button onclick="refreshData()">Redraw Graph</button>
                       <p class="header">Note Graph</p>
                       <div class="container">
                         <div id="note_graph"/>
