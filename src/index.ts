@@ -63,73 +63,80 @@ async function createSettings() {
 
 }
 
+async function fetchData() {
+    const notes = await getNotes()
+    const data = {
+      "nodes": [],
+      "edges": [],
+    }
+
+    notes.forEach(function(value, id) {
+      data.nodes.push({
+        "id": id,
+        "title": value.title,
+      })
+      var links = value["links"]
+      if (links.length > 0) {
+        for (const link of links) {
+          // Ignore links that don't link to notes.
+          if (notes.has(link)) {
+            data.edges.push({
+              "source": id,
+              "target": link,
+            });
+          }
+        }
+      }
+    });
+  return data;
+}
+
 joplin.plugins.register({
   onStart: async function() {
     await createSettings();
     const panels = joplin.views.panels;
     const view = await (panels as any).create();
     var prevData = {};
+    var data = await fetchData();
 
     await panels.addScript(view, './d3.min.js');
     await panels.addScript(view, './webview.css');
     await panels.addScript(view, './note-graph.js');
 
-    async function updateGraphView() {
-      const data = {
-        "nodes": [],
-        "edges": [],
-      }
-      panels.onMessage(view, (message:any) => {
-        if (message.name === "d3JSLoaded") {
+    panels.onMessage(view, (message:any) => {
+      if (message.name === "d3JSLoaded") {
+        prevData = data
+        return data;
+      } else if (message.name === "checkForUpdate") {
+        if (message.force === true) {
           prevData = data
           return data;
-        } else if (message.name === "checkForUpdate") {
-          if (message.force === true) {
-            prevData = data
-            return data;
-          }
-          var sameData = deepEqual(data, prevData)
-          if (!sameData) {
-            prevData = data
-            return data;
-          }
-          return undefined;
-        } else if (message.name === "navigateTo") {
-          joplin.commands.execute('openNote', message.id)
         }
-      });
-
-      const notes = await getNotes()
-      notes.forEach(function(value, id) {
-        data.nodes.push({
-          "id": id,
-          "title": value.title,
-        })
-        var links = value["links"]
-        if (links.length > 0) {
-          for (const link of links) {
-            // Ignore links that don't link to notes.
-            if (notes.has(link)) {
-              data.edges.push({
-                "source": id,
-                "target": link,
-              });
-            }
-          }
+        var sameData = deepEqual(data, prevData)
+        if (!sameData) {
+          prevData = data
+          return data;
         }
-      });
+        return undefined;
+      } else if (message.name === "navigateTo") {
+        joplin.commands.execute('openNote', message.id)
+      }
+    });
 
-      await panels.setHtml(view, `
-                  <div class="outline-content">
-                      <div class="header-area">
-                        <button onclick="refreshData(true)">Redraw Graph</button>
-                        <p class="header">Note Graph</p>
-                      </div>
-                      <div class="container">
-                        <div id="note_graph"/>
-                      </div>
-        </div>
-      `);
+    await panels.setHtml(view, `
+                <div class="outline-content">
+                    <div class="header-area">
+                      <button onclick="refreshData(true)">Redraw Graph</button>
+                      <p class="header">Note Graph</p>
+                    </div>
+                    <div class="container">
+                      <div id="note_graph"/>
+                    </div>
+      </div>
+    `);
+
+    async function updateGraphView() {
+      data = await fetchData();
     };
 
     await joplin.workspace.onNoteContentChange(() => {
@@ -138,6 +145,5 @@ joplin.plugins.register({
     await joplin.workspace.onNoteSelectionChange(() => {
       updateGraphView();
     });
-    updateGraphView();
   },
 });
