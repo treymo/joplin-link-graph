@@ -135,6 +135,9 @@ joplin.plugins.register({
     await joplin.workspace.onNoteContentChange(() => {
       updateGraphView();
     });
+    await joplin.workspace.onNoteSelectionChange(() => {
+      updateGraphView();
+    });
     updateGraphView();
   },
 });
