@@ -1,5 +1,5 @@
 import joplin from 'api';
-import { SettingItemType } from 'api/types';
+import { SettingItemType, ToolbarButtonLocation } from 'api/types';
 var deepEqual = require('deep-equal')
 
 const DEFAULT_MAX_NOTES = 700;
@@ -101,10 +101,25 @@ joplin.plugins.register({
     var prevData = {};
     var data = await fetchData();
 
+    // Create a toolbar button
+		await joplin.commands.register({
+			name: 'showHideGraphUI',
+			label: 'Show/Hide Graph View',
+      iconName: 'fas fa-sitemap',
+			execute: async () => {
+        if (await panels.visible(view)) {
+          await panels.hide(view);
+        } else {
+          await panels.show(view);
+        }
+			},
+		});
+    await joplin.views.toolbarButtons.create('graphUIButton', 'showHideGraphUI', ToolbarButtonLocation.NoteToolbar);
+
+    // Build Panel
     await panels.addScript(view, './d3.min.js');
     await panels.addScript(view, './webview.css');
     await panels.addScript(view, './note-graph.js');
-
     panels.onMessage(view, (message:any) => {
       if (message.name === "d3JSLoaded") {
         prevData = data
