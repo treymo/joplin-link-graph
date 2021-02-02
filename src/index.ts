@@ -64,30 +64,32 @@ async function createSettings() {
 }
 
 async function fetchData() {
-    const notes = await getNotes()
-    const data = {
-      "nodes": [],
-      "edges": [],
-    }
+  const note = await joplin.workspace.selectedNote();
+  const notes = await getNotes()
+  const data = {
+    "nodes": [],
+    "edges": [],
+    "currentNoteID": note.id,
+  }
 
-    notes.forEach(function(value, id) {
-      data.nodes.push({
-        "id": id,
-        "title": value.title,
-      })
-      var links = value["links"]
-      if (links.length > 0) {
-        for (const link of links) {
-          // Ignore links that don't link to notes.
-          if (notes.has(link)) {
-            data.edges.push({
-              "source": id,
-              "target": link,
-            });
-          }
+  notes.forEach(function(value, id) {
+    data.nodes.push({
+      "id": id,
+      "title": value.title,
+    })
+    var links = value["links"]
+    if (links.length > 0) {
+      for (const link of links) {
+        // Ignore links that don't link to notes.
+        if (notes.has(link)) {
+          data.edges.push({
+            "source": id,
+            "target": link,
+          });
         }
       }
-    });
+    }
+  });
   return data;
 }
 
@@ -139,7 +141,7 @@ joplin.plugins.register({
       data = await fetchData();
     };
 
-    await joplin.workspace.onNoteContentChange(() => {
+    await joplin.workspace.onNoteChange(() => {
       updateGraphView();
     });
     await joplin.workspace.onNoteSelectionChange(() => {

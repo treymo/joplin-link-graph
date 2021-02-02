@@ -16,7 +16,7 @@ async function refreshData(force) {
     const updatedData = await webviewApi.postMessage(
       {
         name: 'checkForUpdate',
-        force: typeof force !== 'undefined' ? true : false,
+        force: typeof force === 'undefined' ? false : force,
       });
     if (typeof updatedData !== 'undefined') {
       await update(updatedData);
@@ -36,10 +36,11 @@ whenAvailable("d3", async function(t) {
 });
 
 var simulation, svg;
+var width, height;
 function buildGraph(data) {
-  var margin = {top: 10, right: 10, bottom: 10, left: 10},
-    width = 1000 - margin.left - margin.right,
-    height = 1000 - margin.top - margin.bottom;
+  var margin = {top: 10, right: 10, bottom: 10, left: 10};
+  width = 1000 - margin.left - margin.right,
+  height = 1000 - margin.top - margin.bottom;
 
   svg = d3.select("#note_graph")
     .append("svg")
@@ -122,6 +123,11 @@ function update(data) {
 
     node
         .attr("transform", function(d) {
+          if (d.id == data.currentNoteID) {
+            // Center the current note in the svg.
+            d.x = width / 2;
+            d.y = height / 2;
+          }
           return "translate(" + d.x + "," + d.y + ")";
         })
   }
