@@ -108,7 +108,7 @@ joplin.plugins.register({
       iconName: 'fas fa-sitemap',
 			execute: async () => {
         const isVisible = await (panels as any).visible(view);
-				(panels as any).show(view, !isVisible);
+        (panels as any).show(view, !isVisible);
 			},
 		});
     await joplin.views.toolbarButtons.create('graphUIButton', 'showHideGraphUI', ToolbarButtonLocation.NoteToolbar);
