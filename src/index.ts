@@ -162,5 +162,8 @@ joplin.plugins.register({
     await joplin.workspace.onNoteSelectionChange(() => {
       updateGraphView();
     });
+    await joplin.settings.onChange(() => {
+      updateGraphView();
+    });
   },
 });
