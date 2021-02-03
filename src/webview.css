@@ -31,6 +31,12 @@ button {
 
 circle {
   fill: var(--joplin-color);
+  r: 10;
+}
+
+.current-note {
+  fill: darkgreen;
+  r: 15;
 }
 
 line {

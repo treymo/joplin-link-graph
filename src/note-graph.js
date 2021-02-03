@@ -51,7 +51,7 @@ function buildGraph(data) {
             "translate(" + margin.left + "," + margin.top + ")");
 
   simulation = d3.forceSimulation()
-      .force("link", d3.forceLink().distance(100)
+      .force("link", d3.forceLink().distance(200)
         .id(function(d) { return d.id; }))
       .force("charge", d3.forceManyBody()
         .strength(function(d) { return -150;}))
@@ -88,7 +88,7 @@ function update(data) {
     .enter().append("g")
 
   var circles = node.append("circle")
-      .attr("r", 10)
+      .classed("current-note", (d) => d.id === data.currentNoteID)
       .on('click', function(d, i) {
           webviewApi.postMessage({
             name: 'navigateTo',
