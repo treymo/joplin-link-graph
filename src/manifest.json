@@ -6,7 +6,7 @@
 	"name": "Link Graph UI",
 	"description": "View the connections between Joplin notes.",
 	"author": "Trey Moore",
-	"homepage_url": "treymo.io/joplin-link-graph",
-	"repository_url": "github.com/treymo/joplin-link-graph",
+	"homepage_url": "https://github.com/treymo/joplin-link-graph",
+	"repository_url": "https://github.com/treymo/joplin-link-graph",
 	"keywords": ["joplin", "link", "graph", "ui", "zettelkasten"]
 }
