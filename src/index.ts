@@ -107,11 +107,8 @@ joplin.plugins.register({
 			label: 'Show/Hide Graph View',
       iconName: 'fas fa-sitemap',
 			execute: async () => {
-        if (await panels.visible(view)) {
-          await panels.hide(view);
-        } else {
-          await panels.show(view);
-        }
+        const isVisible = await (panels as any).visible(view);
+				(panels as any).show(view, !isVisible);
 			},
 		});
     await joplin.views.toolbarButtons.create('graphUIButton', 'showHideGraphUI', ToolbarButtonLocation.NoteToolbar);
