@@ -104,15 +104,15 @@ function update(data) {
       .attr('x', 11)
       .attr('y', 5);
 
-	//	update simulation nodes, links, and alpha
-	simulation
-		.nodes(data.nodes)
-		.on("tick", ticked);
+  //  update simulation nodes, links, and alpha
+  simulation
+    .nodes(data.nodes)
+    .on("tick", ticked);
 
-  	simulation.force("link")
-  		.links(data.edges);
+    simulation.force("link")
+      .links(data.edges);
 
-  	simulation.alpha(1).alphaTarget(0).restart();
+    simulation.alpha(1).alphaTarget(0).restart();
 
   function ticked() {
     link

@@ -102,15 +102,15 @@ joplin.plugins.register({
     var data = await fetchData();
 
     // Create a toolbar button
-		await joplin.commands.register({
-			name: 'showHideGraphUI',
-			label: 'Show/Hide Graph View',
+    await joplin.commands.register({
+      name: 'showHideGraphUI',
+      label: 'Show/Hide Graph View',
       iconName: 'fas fa-sitemap',
-			execute: async () => {
+      execute: async () => {
         const isVisible = await (panels as any).visible(view);
         (panels as any).show(view, !isVisible);
-			},
-		});
+      },
+    });
     await joplin.views.toolbarButtons.create('graphUIButton', 'showHideGraphUI', ToolbarButtonLocation.NoteToolbar);
 
     // Build Panel
