@@ -6,29 +6,52 @@ var deepEqual = require('deep-equal')
 const DEFAULT_MAX_NOTES = 700;
 
 async function createSettings() {
-    await joplin.settings.registerSection('graph-ui.settings', {
-      label: 'Graph UI',
-      // Check out https://forkaweso.me/Fork-Awesome/icons/ for available icons.
-      iconName: 'fas fa-sitemap'
-    });
+  const sectionName = "graph-ui.settings"
+  await joplin.settings.registerSection(sectionName, {
+    label: 'Graph UI',
+    // Check out https://forkaweso.me/Fork-Awesome/icons/ for available icons.
+    iconName: 'fas fa-sitemap'
+  });
 
-     await joplin.settings.registerSetting('maxNodesOnGraph', {
-      value: DEFAULT_MAX_NOTES,
-      type: SettingItemType.Int,
-      section: 'graph-ui.settings',
-      public: true,
-      label: 'Max nodes in graph',
-      description: 'Maximun number of nodes shown in the graph. Most recent nodes have priority.'
-    });
+  await joplin.settings.registerSetting('maxNodesOnGraph', {
+    value: DEFAULT_MAX_NOTES,
+    type: SettingItemType.Int,
+    section: sectionName,
+    public: true,
+    label: 'Max nodes in graph',
+    description: 'Maximun number of nodes shown in the graph. Most recent nodes have priority.'
+  });
 
+  await joplin.settings.registerSetting("filteredNotebookNames", {
+    value: "",
+    type: SettingItemType.String,
+    section: sectionName,
+    public: true,
+    label: "Notebooks names to filter out",
+    description: "Comma separated list of Notebook names to filter.",
+  });
 }
 
-// Set of notebook IDs to filter out of the graph view.
-var filteredNotebooks = new Set;
+async function getFilteredNotebooks(notebooks) {
+  const filteredNotebookNames = await joplin.settings.value("filteredNotebookNames");
+  if ("" === filteredNotebookNames) return new Set();
+
+  const allNotebooks = new Map();
+  notebooks.forEach(n => allNotebooks.set(n.title, n.id))
+
+  var namesToFilter = filteredNotebookNames.split(",");
+  namesToFilter = namesToFilter.filter(name => allNotebooks.has(name));
+  namesToFilter = namesToFilter.map(name => allNotebooks.get(name));  // Name to ID
+  return new Set(namesToFilter);
+}
+
 async function fetchData() {
   const selectedNote = await joplin.workspace.selectedNote();
   const notes = await joplinData.getNotes();
   const notebooks = await joplinData.getNotebooks();
+  // Set of notebook IDs to filter out of the graph view.
+  var filteredNotebooks = await getFilteredNotebooks(notebooks);
+
   const data = {
     "nodes": [],
     "edges": [],
