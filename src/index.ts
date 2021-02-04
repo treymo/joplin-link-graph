@@ -32,7 +32,7 @@ async function createSettings() {
   });
 }
 
-async function getFilteredNotebooks(notebooks) {
+async function getFilteredNotes(notes, notebooks) {
   const filteredNotebookNames = await joplin.settings.value("filteredNotebookNames");
   if ("" === filteredNotebookNames) return new Set();
 
@@ -41,16 +41,24 @@ async function getFilteredNotebooks(notebooks) {
 
   var namesToFilter = filteredNotebookNames.split(",");
   namesToFilter = namesToFilter.filter(name => allNotebooks.has(name));
-  namesToFilter = namesToFilter.map(name => allNotebooks.get(name));  // Name to ID
-  return new Set(namesToFilter);
+  const notebookIDsToFilter = new Set(namesToFilter.map(name => allNotebooks.get(name)));
+
+  // TODO: Filter out grandchildren/sub-notebooks.
+  const filteredNotes = new Set();
+  notes.forEach(function(n, id) {
+    if (notebookIDsToFilter.has(n.parent_id)) {
+      filteredNotes.add(id);
+    }
+  });
+
+  return filteredNotes;
 }
 
 async function fetchData() {
   const selectedNote = await joplin.workspace.selectedNote();
   const notes = await joplinData.getNotes();
   const notebooks = await joplinData.getNotebooks();
-  // Set of notebook IDs to filter out of the graph view.
-  var filteredNotebooks = await getFilteredNotebooks(notebooks);
+  var noteIDsToExclude = await getFilteredNotes(notes, notebooks);
 
   const data = {
     "nodes": [],
@@ -59,22 +67,21 @@ async function fetchData() {
   };
 
   notes.forEach(function(note, id) {
-    if (!filteredNotebooks.has(note.parent_id)) {
+    if (!noteIDsToExclude.has(id)) {
       data.nodes.push({
         "id": id,
         "title": note.title,
       })
 
       var links = note["links"]
-      if (links.length > 0) {
-        for (const link of links) {
-          var linkDestExists = notes.has(link);
-          if (linkDestExists) {
-            data.edges.push({
-              "source": id,
-              "target": link,
-            });
-          }
+      for (const link of links) {
+        if (noteIDsToExclude.has(link)) continue;
+        var linkDestExists = notes.has(link);
+        if (linkDestExists) {
+          data.edges.push({
+            "source": id,
+            "target": link,
+          });
         }
       }
     }
