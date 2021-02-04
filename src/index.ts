@@ -65,6 +65,7 @@ joplin.plugins.register({
     const panels = joplin.views.panels;
     const view = await (panels as any).create();
     var prevData = {};
+    var syncOngoing = false;
     var data = await fetchData();
 
     // Create a toolbar button
@@ -92,11 +93,15 @@ joplin.plugins.register({
           prevData = data
           return data;
         }
-        var sameData = deepEqual(data, prevData)
-        if (!sameData) {
-          prevData = data
-          return data;
+
+        if (!syncOngoing) {
+          var sameData = deepEqual(data, prevData)
+          if (!sameData) {
+            prevData = data
+            return data;
+          }
         }
+
         return undefined;
       } else if (message.name === "navigateTo") {
         joplin.commands.execute('openNote', message.id)
@@ -128,5 +133,13 @@ joplin.plugins.register({
     await joplin.settings.onChange(() => {
       updateGraphView();
     });
+
+    await joplin.workspace.onSyncStart(() => {
+      syncOngoing = true;
+    });
+    await joplin.workspace.onSyncComplete(() => {
+      syncOngoing = false;
+    });
+
   },
 });
