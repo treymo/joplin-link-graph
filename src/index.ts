@@ -33,22 +33,15 @@ async function createSettings() {
 }
 
 async function getFilteredNotebooks(notebooks) {
-  const filteredNotebookNames = await joplin.settings.value(
-    "filteredNotebookNames"
-  );
-  if ("" === filteredNotebookNames) {
-    return new Set();
-  }
+  const filteredNotebookNames = await joplin.settings.value("filteredNotebookNames");
+  if ("" === filteredNotebookNames) return new Set();
 
   const allNotebooks = new Map();
-  for (var notebook of notebooks) {
-    allNotebooks.set(notebook.title, notebook.id)
-  }
+  notebooks.forEach(n => allNotebooks.set(n.title, n.id))
+
   var namesToFilter = filteredNotebookNames.split(",");
   namesToFilter = namesToFilter.filter(name => allNotebooks.has(name));
-  // Map the notebook name to ID
-  namesToFilter = namesToFilter.map(name => allNotebooks.get(name));
-
+  namesToFilter = namesToFilter.map(name => allNotebooks.get(name));  // Name to ID
   return new Set(namesToFilter);
 }
 
@@ -57,10 +50,7 @@ async function fetchData() {
   const notes = await joplinData.getNotes();
   const notebooks = await joplinData.getNotebooks();
   // Set of notebook IDs to filter out of the graph view.
-  var filteredNotebooks = new Set();
-  //var filteredNotebooks = await getFilteredNotebooks(notebooks);
-  // TODO: remove
-  console.log("Filtered notebooks: ", filteredNotebooks)
+  var filteredNotebooks = await getFilteredNotebooks(notebooks);
 
   const data = {
     "nodes": [],
