@@ -1,49 +1,9 @@
 import joplin from 'api';
+import * as joplinData from './data';
 import { SettingItemType, ToolbarButtonLocation } from 'api/types';
 var deepEqual = require('deep-equal')
 
 const DEFAULT_MAX_NOTES = 700;
-
-function getAllLinksForNote(noteBody:string) {
-  const links = [];
-  // TODO: needs to handle resource links vs note links. see 4. Tips note for
-  // webclipper screenshot.
-  // https://stackoverflow.com/questions/37462126/regex-match-markdown-link
-  const linkRegexp = (/\[\]|\[.*?\]\(:\/(.*?)\)/g);
-  var match = linkRegexp.exec(noteBody);
-  while (match != null) {
-    if (match[1] !== undefined) {
-      links.push(match[1]);
-    }
-    match = linkRegexp.exec(noteBody);
-  }
-  return links;
-}
-
-// Fetches every note.
-async function getNotes(): Promise<Map<string, any>> {
-  var allNotes = []
-  var page_num = 1;
-  const maxNotes = await joplin.settings.value("maxNodesOnGraph")
-  do {
-    var notes = await joplin.data.get(['notes'], {
-      fields: ['id', 'title', 'body'],
-      order_by: 'updated_time',
-      order_dir: 'DESC',
-      limit: maxNotes < 100 ? maxNotes : 100,
-      page: page_num,
-    });
-    allNotes.push(...notes.items);
-    page_num++;
-  } while (notes.has_more && allNotes.length < maxNotes)
-
-  const noteMap = new Map();
-  for (const note of allNotes) {
-    var links = getAllLinksForNote(note.body);
-    noteMap.set(note.id, {title: note.title, links: links})
-  }
-  return noteMap;
-}
 
 async function createSettings() {
     await joplin.settings.registerSection('graph-ui.settings', {
@@ -63,29 +23,35 @@ async function createSettings() {
 
 }
 
+// Set of notebook IDs to filter out of the graph view.
+var filteredNotebooks = new Set;
 async function fetchData() {
-  const note = await joplin.workspace.selectedNote();
-  const notes = await getNotes()
+  const selectedNote = await joplin.workspace.selectedNote();
+  const notes = await joplinData.getNotes();
+  const notebooks = await joplinData.getNotebooks();
   const data = {
     "nodes": [],
     "edges": [],
-    "currentNoteID": note.id,
-  }
+    "currentNoteID": selectedNote.id,
+  };
 
-  notes.forEach(function(value, id) {
-    data.nodes.push({
-      "id": id,
-      "title": value.title,
-    })
-    var links = value["links"]
-    if (links.length > 0) {
-      for (const link of links) {
-        // Ignore links that don't link to notes.
-        if (notes.has(link)) {
-          data.edges.push({
-            "source": id,
-            "target": link,
-          });
+  notes.forEach(function(note, id) {
+    if (!filteredNotebooks.has(note.parent_id)) {
+      data.nodes.push({
+        "id": id,
+        "title": note.title,
+      })
+
+      var links = note["links"]
+      if (links.length > 0) {
+        for (const link of links) {
+          var linkDestExists = notes.has(link);
+          if (linkDestExists) {
+            data.edges.push({
+              "source": id,
+              "target": link,
+            });
+          }
         }
       }
     }
