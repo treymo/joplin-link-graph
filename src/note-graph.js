@@ -51,11 +51,11 @@ function buildGraph(data) {
             "translate(" + margin.left + "," + margin.top + ")");
 
   simulation = d3.forceSimulation()
-      .force("link", d3.forceLink().distance(100)
+      .force("link", d3.forceLink().distance(200)
         .id(function(d) { return d.id; }))
-      .force("charge", d3.forceManyBody().distanceMin(5)
-        .strength(function() { return -100;}))
-      .force("nocollide", d3.forceCollide(30))
+      .force("charge", d3.forceManyBody()
+        .strength(function() { return -500;}))
+      .force("nocollide", d3.forceCollide(200))
       .force("center", d3.forceCenter(width / 2, height / 2));
 
   //add zoom capabilities
@@ -104,7 +104,7 @@ function update(data) {
       .text(function(d) {
         return d.title;
       })
-      .attr('x', (d) => d.id === data.currentNoteID ? 16 : 11)
+      .attr('x', (d) => d.id === data.currentNoteID ? 20 : 14)
       .attr('y', 5);
 
   //  update simulation nodes, links, and alpha

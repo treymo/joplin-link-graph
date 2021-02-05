@@ -32,17 +32,17 @@ button {
 circle {
   fill: var(--joplin-background-color3);
   stroke: var(--joplin-color4);
-  r: 8;
+  r: 10;
 }
 
 .adjacent-note {
   fill: var(--joplin-color4);
-  r: 10;
+  r: 13;
 }
 
 .current-note {
   fill: var(--joplin-color);
-  r: 15;
+  r: 18;
 }
 
 line {
@@ -51,6 +51,7 @@ line {
 
 .adjacent-line {
   stroke: var(--joplin-color);
+  stroke-width: 3px;
 }
 
 .node-label {
