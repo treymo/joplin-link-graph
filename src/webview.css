@@ -30,17 +30,17 @@ button {
 }
 
 circle {
-  fill: var(--joplin-color);
+  fill: var(--joplin-color4);
   r: 10;
 }
 
 .current-note {
-  fill: darkgreen;
+  fill: var(--joplin-selected-color2);
   r: 15;
 }
 
 line {
-  stroke: var(--joplin-color);
+  stroke: var(--joplin-color4);
 }
 
 .node-label {
