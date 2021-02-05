@@ -1,6 +1,11 @@
 import joplin from 'api';
 
-export async function getNotebooks(): Promise<Array<any>> {
+export interface Notebook {
+  id: string;
+  title: string;
+}
+
+export async function getNotebooks(): Promise<Array<Notebook>> {
   var allNotebooks = []
   var page_num = 1;
   do {
@@ -15,8 +20,16 @@ export async function getNotebooks(): Promise<Array<any>> {
   return allNotebooks;
 }
 
+export interface Note {
+  id: string;
+  parent_id: string;
+  title: string;
+  body: string;
+  linkedToCurrentNote?: boolean;
+}
+
 // Fetches every note.
-export async function getNotes(): Promise<Map<string, any>> {
+export async function getNotes(): Promise<Map<string, Note>> {
   var allNotes = []
   var page_num = 1;
   const maxNotes = await joplin.settings.value("maxNodesOnGraph")

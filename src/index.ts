@@ -32,19 +32,20 @@ async function createSettings() {
   });
 }
 
-async function getFilteredNotes(notes, notebooks) {
+async function getFilteredNotes(notes: Map<string, joplinData.Note>,
+  notebooks: Array<joplinData.Notebook>) {
   const filteredNotebookNames = await joplin.settings.value("filteredNotebookNames");
   if ("" === filteredNotebookNames) return new Set();
 
   const allNotebooks = new Map();
   notebooks.forEach(n => allNotebooks.set(n.title, n.id))
 
-  var namesToFilter = filteredNotebookNames.split(",");
+  var namesToFilter : Array<string> = filteredNotebookNames.split(",");
   namesToFilter = namesToFilter.filter(name => allNotebooks.has(name));
-  const notebookIDsToFilter = new Set(namesToFilter.map(name => allNotebooks.get(name)));
+  const notebookIDsToFilter : Set<string> = new Set(namesToFilter.map(name => allNotebooks.get(name)));
 
   // TODO: Filter out grandchildren/sub-notebooks.
-  const filteredNotes = new Set();
+  const filteredNotes = new Set<string>();
   notes.forEach(function(n, id) {
     if (notebookIDsToFilter.has(n.parent_id)) {
       filteredNotes.add(id);
@@ -118,6 +119,7 @@ joplin.plugins.register({
     await joplin.commands.register({
       name: 'showHideGraphUI',
       label: 'Show/Hide Graph View',
+      // TODO: smaller icon? or thinner?
       iconName: 'fas fa-sitemap',
       execute: async () => {
         const isVisible = await (panels as any).visible(view);
