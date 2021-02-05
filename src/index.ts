@@ -67,24 +67,40 @@ async function fetchData() {
   };
 
   notes.forEach(function(note, id) {
-    if (!noteIDsToExclude.has(id)) {
-      data.nodes.push({
-        "id": id,
-        "title": note.title,
-      })
+    if (noteIDsToExclude.has(id)) return;
 
-      var links = note["links"]
-      for (const link of links) {
-        if (noteIDsToExclude.has(link)) continue;
-        var linkDestExists = notes.has(link);
-        if (linkDestExists) {
-          data.edges.push({
-            "source": id,
-            "target": link,
-          });
+    var links = note["links"]
+    for (const link of links) {
+      if (noteIDsToExclude.has(link)) continue;
+
+      var linkDestExists = notes.has(link);
+      if (linkDestExists) {
+        data.edges.push({
+          "source": id,
+          "target": link,
+          "focused": (id === selectedNote.id || link === selectedNote.id),
+        });
+
+        // Mark nodes that are adjacent to the currently selected note.
+        if (id === selectedNote.id) {
+          notes.get(link).linkedToCurrentNote = true;
+        } else if (link == selectedNote.id) {
+          notes.get(id).linkedToCurrentNote = true;
+        } else {
+          const l = notes.get(link);
+          l.linkedToCurrentNote = (l.linkedToCurrentNote || false);
         }
       }
     }
+  });
+
+  notes.forEach(function(note, id) {
+    if (noteIDsToExclude.has(id)) return;
+    data.nodes.push({
+      "id": id,
+      "title": note.title,
+      "focused": note.linkedToCurrentNote,
+    })
   });
   return data;
 }

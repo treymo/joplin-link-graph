@@ -19,14 +19,14 @@ async function refreshData(force) {
         force: typeof force === 'undefined' ? false : force,
       });
     if (typeof updatedData !== 'undefined') {
-      await update(updatedData);
+      update(updatedData);
     }
   } catch(err) {
     console.warn("error getting data update: ", err);
   }
 }
 
-whenAvailable("d3", async function(t) {
+whenAvailable("d3", async function() {
   const response = await webviewApi.postMessage({name: 'd3JSLoaded'});
   buildGraph(response);
 
@@ -54,7 +54,7 @@ function buildGraph(data) {
       .force("link", d3.forceLink().distance(200)
         .id(function(d) { return d.id; }))
       .force("charge", d3.forceManyBody()
-        .strength(function(d) { return -150;}))
+        .strength(function() { return -150;}))
       .force("center", d3.forceCenter(width / 2, height / 2));
 
   //add zoom capabilities
@@ -79,6 +79,7 @@ function update(data) {
     .selectAll("line")
     .data(data.edges)
     .enter().append("line")
+    .classed("adjacent-line", (d) => d.focused)
 
   // Draw nodes.
   var node = svg.append("g")
@@ -87,9 +88,10 @@ function update(data) {
     .data(data.nodes)
     .enter().append("g")
 
-  var circles = node.append("circle")
+  node.append("circle")
       .classed("current-note", (d) => d.id === data.currentNoteID)
-      .on('click', function(d, i) {
+      .classed("adjacent-note", (d) => d.focused)
+      .on('click', function(_, i) {
           webviewApi.postMessage({
             name: 'navigateTo',
             id: i.id,
@@ -101,7 +103,7 @@ function update(data) {
       .text(function(d) {
         return d.title;
       })
-      .attr('x', 11)
+      .attr('x', (d) => d.id === data.currentNoteID ? 16 : 11)
       .attr('y', 5);
 
   //  update simulation nodes, links, and alpha
