@@ -51,10 +51,11 @@ function buildGraph(data) {
             "translate(" + margin.left + "," + margin.top + ")");
 
   simulation = d3.forceSimulation()
-      .force("link", d3.forceLink().distance(200)
+      .force("link", d3.forceLink().distance(100)
         .id(function(d) { return d.id; }))
-      .force("charge", d3.forceManyBody()
-        .strength(function() { return -150;}))
+      .force("charge", d3.forceManyBody().distanceMin(5)
+        .strength(function() { return -100;}))
+      .force("nocollide", d3.forceCollide(30))
       .force("center", d3.forceCenter(width / 2, height / 2));
 
   //add zoom capabilities
@@ -111,10 +112,10 @@ function update(data) {
     .nodes(data.nodes)
     .on("tick", ticked);
 
-    simulation.force("link")
-      .links(data.edges);
+  simulation.force("link")
+    .links(data.edges);
 
-    simulation.alpha(1).alphaTarget(0).restart();
+  simulation.alpha(1).alphaTarget(0).restart();
 
   function ticked() {
     link
