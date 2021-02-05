@@ -1,6 +1,6 @@
 {
   "name": "joplin-plugin-link-graph-ui",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "scripts": {
     "dist": "webpack --joplin-plugin-config buildMain && webpack --joplin-plugin-config buildExtraScripts && webpack --joplin-plugin-config createArchive",
     "prepare": "npm run dist",
