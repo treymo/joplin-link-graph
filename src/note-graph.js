@@ -32,15 +32,15 @@ whenAvailable("d3", async function() {
 
   setInterval(async function() {
     await refreshData()
-  }, 500);
+  }, 1000);
 });
 
 var simulation, svg;
 var width, height;
 function buildGraph(data) {
   var margin = {top: 10, right: 10, bottom: 10, left: 10};
-  width = 1000 - margin.left - margin.right,
-  height = 1000 - margin.top - margin.bottom;
+  width = window.innerWidth
+  height = window.innerHeight
 
   svg = d3.select("#note_graph")
     .append("svg")
