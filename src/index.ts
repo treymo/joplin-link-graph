@@ -4,6 +4,7 @@ import { SettingItemType, ToolbarButtonLocation } from 'api/types';
 var deepEqual = require('deep-equal')
 
 const DEFAULT_MAX_NOTES = 700;
+const DEFAULT_MAX_DEGREE = 3;
 
 async function createSettings() {
   const sectionName = "graph-ui.settings"
@@ -29,6 +30,16 @@ async function createSettings() {
     public: true,
     label: "Notebooks names to filter out",
     description: "Comma separated list of Notebook names to filter.",
+  });
+
+  await joplin.settings.registerSetting("maxSeparationDegree", {
+    value: DEFAULT_MAX_DEGREE,
+    type: SettingItemType.Int,
+	minimum: 0,
+    section: sectionName,
+    public: true,
+    label: "Max degree of separation",
+    description: "Maximum number of link jumps from selected note. Zero for all notes",
   });
 }
 
@@ -57,7 +68,7 @@ async function getFilteredNotes(notes: Map<string, joplinData.Note>,
 
 async function fetchData() {
   const selectedNote = await joplin.workspace.selectedNote();
-  const notes = await joplinData.getNotes();
+  const notes = await joplinData.getNotes(selectedNote.id);
   const notebooks = await joplinData.getNotebooks();
   var noteIDsToExclude = await getFilteredNotes(notes, notebooks);
 

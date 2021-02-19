@@ -28,8 +28,18 @@ export interface Note {
   linkedToCurrentNote?: boolean;
 }
 
+// Fetch notes
+export async function getNotes(selectedNote:string,): Promise<Map<string, Note>> {
+  const maxDegree = await joplin.settings.value("maxSeparationDegree");
+  if(maxDegree > 0) {
+    return getLinkedNotes(selectedNote, maxDegree);
+  } else {
+    return getAllNotes();
+  }
+}
+
 // Fetches every note.
-export async function getNotes(): Promise<Map<string, Note>> {
+async function getAllNotes(): Promise<Map<string, Note>> {
   var allNotes = []
   var page_num = 1;
   const maxNotes = await joplin.settings.value("maxNodesOnGraph")
@@ -52,6 +62,74 @@ export async function getNotes(): Promise<Map<string, Note>> {
     noteMap.set(note.id, {title: note.title, parent_id: note.parent_id, links: links})
   }
   return noteMap;
+}
+
+// Fetch all notes linked to a given source note, up to a maximum degree of
+// separation.
+async function getLinkedNotes(source_id:string, maxDegree:number) : Promise<Map<string, Note>> {
+
+  var pending = [];
+  var visited = [];
+
+  const noteMap = new Map();
+
+  var degree = 0;
+  pending.push(source_id);
+
+  do {
+    // Traverse a new batch of pending note ids, storing the note data in
+    // the resulting map, and stashing the newly found linked notes for the
+    // next iteration.
+
+    const notes = await getNoteArray(pending);
+    visited.push(...pending);
+    pending = [];
+
+    notes.forEach(note => {
+
+      // store note data to be returned at the end
+      // of the traversal
+      const links = getAllLinksForNote(note.body);
+      noteMap.set(note.id, {
+        title: note.title,
+        parent_id: note.parent_id,
+        links: links});
+
+      // stash any new links for the next iteration
+      links.forEach(link => {
+
+        // prevent cycles by filtering notes we've already seen.
+        // TODO this check can get expensive for massive graphs
+        if(!visited.includes(link)) {
+          pending.push(link);
+        }
+      });
+    });
+
+    degree++;
+
+    // stop whenever we've reached the maximum degree of separation, or
+    // we've exhausted the adjacent nodes.
+  } while(pending.length > 0 && degree <= maxDegree);
+
+  return noteMap;
+}
+
+async function getNoteArray(ids:string[]) {
+
+  var promises = ids.map( id => 
+    joplin.data.get(['notes', id], {
+      fields: ['id', 'parent_id', 'title', 'body']
+    })
+  );
+
+  // joplin queries could fail -- make sure we catch errors.
+  const results = await Promise.all(promises.map( p => p.catch(e => e)));
+
+  // remove from results any promises that errored out, returning the valid
+  // subset of queries.
+  const valid = results.filter(r => !(r instanceof Error));
+  return valid;
 }
 
 function getAllLinksForNote(noteBody:string) {
