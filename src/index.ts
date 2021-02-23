@@ -4,7 +4,7 @@ import { SettingItemType, ToolbarButtonLocation } from 'api/types';
 var deepEqual = require('deep-equal')
 
 const DEFAULT_MAX_NOTES = 700;
-const DEFAULT_MAX_DEGREE = 3;
+const DEFAULT_MAX_DEGREE = 0;
 
 async function createSettings() {
   const sectionName = "graph-ui.settings"
@@ -35,7 +35,7 @@ async function createSettings() {
   await joplin.settings.registerSetting("maxSeparationDegree", {
     value: DEFAULT_MAX_DEGREE,
     type: SettingItemType.Int,
-	minimum: 0,
+    minimum: 0,
     section: sectionName,
     public: true,
     label: "Max degree of separation",
