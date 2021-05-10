@@ -1,4 +1,4 @@
-.outline-content {
+.graph-content {
   text-align: center;
   background-color: var(--joplin-background-color) !important;
 }
@@ -25,7 +25,6 @@ button {
 .container {
   width: 100%;
   height: 100%;
-  font-size: var(--joplin-font-size);
   font-family: var(--joplin-font-family);
 }
 
