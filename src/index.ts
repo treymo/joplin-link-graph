@@ -32,6 +32,15 @@ async function createSettings() {
     description: "Comma separated list of Notebook names to filter.",
   });
 
+  await joplin.settings.registerSetting("filterChildNotebooks", {
+    value: true,
+    type: SettingItemType.Bool,
+    section: sectionName,
+    public: true,
+    label: "Filter out child notebooks",
+    description: "Filters out notebooks that are children of the notebooks listed above.",
+  });
+
   await joplin.settings.registerSetting("maxSeparationDegree", {
     value: DEFAULT_MAX_DEGREE,
     type: SettingItemType.Int,
@@ -43,23 +52,45 @@ async function createSettings() {
   });
 }
 
+/**
+ * Returns a list of notes to be filtered out of the graph display.
+ */
 async function getFilteredNotes(notes: Map<string, joplinData.Note>,
   notebooks: Array<joplinData.Notebook>) {
   const filteredNotebookNames = await joplin.settings.value("filteredNotebookNames");
+  // No filtering needed.
   if ("" === filteredNotebookNames) return new Set();
 
-  const allNotebooks = new Map();
-  notebooks.forEach(n => allNotebooks.set(n.title, n.id))
+  const notebooksByName = new Map();
+  const notebooksById = new Map();
+  notebooks.forEach(n => notebooksByName.set(n.title, n.id))
+  notebooks.forEach(n => notebooksById.set(n.id, n))
 
+  // Get a list of valid notebook names to filter out.
   var namesToFilter : Array<string> = filteredNotebookNames.split(",");
-  namesToFilter = namesToFilter.filter(name => allNotebooks.has(name));
-  const notebookIDsToFilter : Set<string> = new Set(namesToFilter.map(name => allNotebooks.get(name)));
+  namesToFilter = namesToFilter.filter(name => notebooksByName.has(name));
 
-  // TODO: Filter out grandchildren/sub-notebooks.
+  // Turn notebook names into IDs.
+  const notebookIDsToFilter : Set<string> = new Set(namesToFilter.map(name => notebooksByName.get(name)));
+
+  const shouldFilterChildren = await joplin.settings.value("filterChildNotebooks");
   const filteredNotes = new Set<string>();
   notes.forEach(function(n, id) {
-    if (notebookIDsToFilter.has(n.parent_id)) {
-      filteredNotes.add(id);
+    var parentNotebook: joplinData.Note = notebooksById.get(n.parent_id)
+    if (shouldFilterChildren) {
+      // Filter a note if any of its ancestor notebooks are filtered.
+      while (parentNotebook !== undefined) {
+        if (notebookIDsToFilter.has(parentNotebook.id)) {
+          filteredNotes.add(id);
+          break;
+        }
+        parentNotebook = notebooksById.get(parentNotebook.parent_id);
+      }
+    } else {
+      // Only filter the immediate children of the notebook.
+      if (notebookIDsToFilter.has(parentNotebook.id)) {
+        filteredNotes.add(id);
+      }
     }
   });
 

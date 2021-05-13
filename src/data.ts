@@ -3,6 +3,7 @@ import joplin from 'api';
 export interface Notebook {
   id: string;
   title: string;
+  parent_id: string;
 }
 
 export async function getNotebooks(): Promise<Array<Notebook>> {
@@ -10,7 +11,7 @@ export async function getNotebooks(): Promise<Array<Notebook>> {
   var page_num = 1;
   do {
     var notebooks = await joplin.data.get(['folders'], {
-      fields: ['id', 'title'],
+      fields: ['id', 'title', 'parent_id'],
       page: page_num,
     });
     allNotebooks.push(...notebooks.items);
@@ -117,7 +118,7 @@ async function getLinkedNotes(source_id:string, maxDegree:number) : Promise<Map<
 
 async function getNoteArray(ids:string[]) {
 
-  var promises = ids.map( id => 
+  var promises = ids.map( id =>
     joplin.data.get(['notes', id], {
       fields: ['id', 'parent_id', 'title', 'body']
     })
