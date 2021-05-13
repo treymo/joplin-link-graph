@@ -32,7 +32,7 @@ whenAvailable("d3", async function() {
 
   setInterval(async function() {
     await refreshData()
-  }, 1000);
+  }, 1000); // One second
 });
 
 var simulation, svg;
