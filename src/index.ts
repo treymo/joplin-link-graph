@@ -1,6 +1,6 @@
 import joplin from 'api';
 import * as joplinData from './data';
-import { SettingItemType, ToolbarButtonLocation, ViewHandle } from 'api/types';
+import { SettingItemType, ToolbarButtonLocation } from 'api/types';
 var deepEqual = require('deep-equal')
 
 const DEFAULT_NODE_FONT_SIZE = 20;
