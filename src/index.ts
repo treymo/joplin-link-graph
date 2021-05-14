@@ -3,6 +3,7 @@ import * as joplinData from './data';
 import { SettingItemType, ToolbarButtonLocation } from 'api/types';
 var deepEqual = require('deep-equal')
 
+const DEFAULT_NODE_FONT_SIZE = 20;
 const DEFAULT_MAX_NOTES = 700;
 const DEFAULT_MAX_DEGREE = 0;
 
@@ -14,13 +15,22 @@ async function createSettings() {
     iconName: 'fas fa-sitemap'
   });
 
+  await joplin.settings.registerSetting('nodeNameFontSize', {
+    value: DEFAULT_NODE_FONT_SIZE,
+    type: SettingItemType.Int,
+    section: sectionName,
+    public: true,
+    label: '(Requires restart) Size of the node label font',
+    description: 'Font size for the label of nodes on the graph..'
+  });
+
   await joplin.settings.registerSetting('maxNodesOnGraph', {
     value: DEFAULT_MAX_NOTES,
     type: SettingItemType.Int,
     section: sectionName,
     public: true,
     label: 'Max nodes in graph',
-    description: 'Maximun number of nodes shown in the graph. Most recent nodes have priority.'
+    description: 'Maximum number of nodes shown in the graph. Most recent nodes have priority.'
   });
 
   await joplin.settings.registerSetting("filteredNotebookNames", {
@@ -153,15 +163,18 @@ joplin.plugins.register({
     await createSettings();
     const panels = joplin.views.panels;
     const view = await (panels as any).create();
+    await panels.setHtml(view, 'Note Graph');
+
     var prevData = {};
     var syncOngoing = false;
     var data = await fetchData();
+    var prevNodeFontSize = await joplin.settings.value("nodeNameFontSize");
+    var nodeFontSize = prevNodeFontSize
 
     // Create a toolbar button
     await joplin.commands.register({
       name: 'showHideGraphUI',
       label: 'Show/Hide Graph View',
-      // TODO: smaller icon? or thinner?
       iconName: 'fas fa-sitemap',
       execute: async () => {
         const isVisible = await (panels as any).visible(view);
@@ -185,9 +198,11 @@ joplin.plugins.register({
         }
 
         if (!syncOngoing) {
-          var sameData = deepEqual(data, prevData)
-          if (!sameData) {
-            prevData = data
+          var dataChanged = !deepEqual(data, prevData)
+          var settingsChanged = nodeFontSize != prevNodeFontSize;
+          if (dataChanged || settingsChanged) {
+            prevNodeFontSize = nodeFontSize;
+            prevData = data;
             return data;
           }
         }
@@ -198,17 +213,22 @@ joplin.plugins.register({
       }
     });
 
-    await panels.setHtml(view, `
-                <div class="outline-content">
-                    <div class="header-area">
-                      <button onclick="refreshData(true)">Redraw Graph</button>
-                      <p class="header">Note Graph</p>
-                    </div>
-                    <div class="container">
-                      <div id="note_graph"/>
-                    </div>
-      </div>
-    `);
+    async function drawPanel() {
+      const nodeFontSize = await joplin.settings.value("nodeNameFontSize");
+      await panels.setHtml(view, `
+                  <div class="graph-content">
+                      <div class="header-area">
+                        <button onclick="refreshData(true)">Redraw Graph</button>
+                        <p class="header">Note Graph</p>
+                      </div>
+                      <div class="container">
+                        <div id="note_graph" style="font-size: ${nodeFontSize}px"/>
+                      </div>
+        </div>
+      `);
+    };
+
+    await drawPanel();
 
     async function updateGraphView() {
       data = await fetchData();
@@ -221,7 +241,11 @@ joplin.plugins.register({
       updateGraphView();
     });
     await joplin.settings.onChange(() => {
-      updateGraphView();
+      joplin.settings.value("nodeNameFontSize").then(newFontSize => {
+        nodeFontSize = newFontSize;
+        // TODO: why does this cause the graph to disappear?
+        // drawPanel();
+      });
     });
 
     await joplin.workspace.onSyncStart(() => {
