@@ -214,6 +214,7 @@ joplin.plugins.register({
     });
 
     async function drawPanel() {
+      const nodeFontSize = await joplin.settings.value("nodeNameFontSize");
       await panels.setHtml(view, `
                   <div class="graph-content">
                       <div class="header-area">
