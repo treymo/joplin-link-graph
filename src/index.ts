@@ -20,7 +20,7 @@ async function createSettings() {
     type: SettingItemType.Int,
     section: sectionName,
     public: true,
-    label: 'Size of the node label font',
+    label: '(Requires restart) Size of the node label font',
     description: 'Font size for the label of nodes on the graph..'
   });
 
@@ -168,6 +168,8 @@ joplin.plugins.register({
     var prevData = {};
     var syncOngoing = false;
     var data = await fetchData();
+    var prevNodeFontSize = await joplin.settings.value("nodeNameFontSize");
+    var nodeFontSize = prevNodeFontSize
 
     // Create a toolbar button
     await joplin.commands.register({
@@ -196,9 +198,11 @@ joplin.plugins.register({
         }
 
         if (!syncOngoing) {
-          var sameData = deepEqual(data, prevData)
-          if (!sameData) {
-            prevData = data
+          var dataChanged = !deepEqual(data, prevData)
+          var settingsChanged = nodeFontSize != prevNodeFontSize;
+          if (dataChanged || settingsChanged) {
+            prevNodeFontSize = nodeFontSize;
+            prevData = data;
             return data;
           }
         }
@@ -210,7 +214,6 @@ joplin.plugins.register({
     });
 
     async function drawPanel() {
-      const nodeFontSize = await joplin.settings.value("nodeNameFontSize");
       await panels.setHtml(view, `
                   <div class="graph-content">
                       <div class="header-area">
@@ -237,7 +240,11 @@ joplin.plugins.register({
       updateGraphView();
     });
     await joplin.settings.onChange(() => {
-      drawPanel();
+      joplin.settings.value("nodeNameFontSize").then(newFontSize => {
+        nodeFontSize = newFontSize;
+        // TODO: why does this cause the graph to disappear?
+        // drawPanel();
+      });
     });
 
     await joplin.workspace.onSyncStart(() => {
