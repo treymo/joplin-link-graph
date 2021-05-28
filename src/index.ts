@@ -52,7 +52,6 @@ async function getFilteredNotes(notes: Map<string, joplinData.Note>,
 }
 
 async function fetchData() {
-  const nodeDistanceRatio = await joplin.settings.value(SETTING_NODE_DISTANCE) / 100.0;
   const selectedNote = await joplin.workspace.selectedNote();
   const maxDegree = await joplin.settings.value(SETTING_MAX_SEPARATION_DEGREE);
   const maxNotes = await joplin.settings.value(SETTING_MAX_NODES)
@@ -65,7 +64,8 @@ async function fetchData() {
     "nodes": [],
     "edges": [],
     "currentNoteID": selectedNote.id,
-    "nodeDistanceRatio": nodeDistanceRatio,
+    "nodeFontSize": await joplin.settings.value(SETTING_NODE_FONT_SIZE),
+    "nodeDistanceRatio": await joplin.settings.value(SETTING_NODE_DISTANCE) / 100.0,
   };
 
   notes.forEach(function(note, id) {
@@ -117,8 +117,6 @@ joplin.plugins.register({
     var prevData = {};
     var syncOngoing = false;
     var data = await fetchData();
-    var prevNodeFontSize = await joplin.settings.value(SETTING_NODE_FONT_SIZE);
-    var nodeFontSize = prevNodeFontSize
 
     // Create a toolbar button
     await joplin.commands.register({
@@ -148,9 +146,7 @@ joplin.plugins.register({
 
         if (!syncOngoing) {
           var dataChanged = !deepEqual(data, prevData)
-          var settingsChanged = nodeFontSize != prevNodeFontSize;
-          if (dataChanged || settingsChanged) {
-            prevNodeFontSize = nodeFontSize;
+          if (dataChanged) {
             prevData = data;
             return data;
           }
@@ -163,7 +159,6 @@ joplin.plugins.register({
     });
 
     async function drawPanel() {
-      const nodeFontSize = await joplin.settings.value(SETTING_NODE_FONT_SIZE);
       await panels.setHtml(view, `
                   <div class="graph-content">
                       <div class="header-area">
@@ -171,7 +166,7 @@ joplin.plugins.register({
                         <p class="header">Note Graph</p>
                       </div>
                       <div class="container">
-                        <div id="note_graph" style="font-size: ${nodeFontSize}px"/>
+                        <div id="note_graph"/>
                       </div>
         </div>
       `);

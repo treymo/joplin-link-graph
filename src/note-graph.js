@@ -102,6 +102,7 @@ function update(data) {
 
   node.append("text")
       .attr("class", "node-label")
+      .attr("font-size", data.nodeFontSize + "px")
       .text(function(d) {
         return d.title;
       })

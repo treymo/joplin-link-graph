@@ -27,7 +27,7 @@ export async function registerSettings() {
     type: SettingItemType.Int,
     section: sectionName,
     public: true,
-    label: '(Requires restart) Size of the node label font',
+    label: 'Size of the node label font',
     description: 'Font size for the label of nodes on the graph..'
   });
 
