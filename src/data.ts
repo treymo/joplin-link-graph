@@ -30,20 +30,19 @@ export interface Note {
 }
 
 // Fetch notes
-export async function getNotes(selectedNote:string,): Promise<Map<string, Note>> {
-  const maxDegree = await joplin.settings.value("maxSeparationDegree");
+export async function getNotes(
+  selectedNote: string, maxNotes: number, maxDegree: number): Promise<Map<string, Note>> {
   if(maxDegree > 0) {
     return getLinkedNotes(selectedNote, maxDegree);
   } else {
-    return getAllNotes();
+    return getAllNotes(maxNotes);
   }
 }
 
 // Fetches every note.
-async function getAllNotes(): Promise<Map<string, Note>> {
+async function getAllNotes(maxNotes: number): Promise<Map<string, Note>> {
   var allNotes = []
   var page_num = 1;
-  const maxNotes = await joplin.settings.value("maxNodesOnGraph")
   do {
     // `parent_id` is the ID of the notebook containing the note.
     var notes = await joplin.data.get(['notes'], {
@@ -71,12 +70,10 @@ async function getLinkedNotes(source_id:string, maxDegree:number) : Promise<Map<
 
   var pending = [];
   var visited = [];
-
   const noteMap = new Map();
-
   var degree = 0;
-  pending.push(source_id);
 
+  pending.push(source_id);
   do {
     // Traverse a new batch of pending note ids, storing the note data in
     // the resulting map, and stashing the newly found linked notes for the

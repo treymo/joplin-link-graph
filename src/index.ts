@@ -1,73 +1,17 @@
 import joplin from 'api';
 import * as joplinData from './data';
-import { SettingItemType, ToolbarButtonLocation } from 'api/types';
+import { registerSettings, SETTING_FILTER_CHILD_NOTEBOOKS,
+  SETTING_MAX_NODES, SETTING_MAX_SEPARATION_DEGREE, SETTING_NODE_FONT_SIZE,
+  SETTING_NOTEBOOK_NAMES_TO_FILTER } from './settings';
+import { ToolbarButtonLocation } from 'api/types';
 var deepEqual = require('deep-equal')
-
-const DEFAULT_NODE_FONT_SIZE = 20;
-const DEFAULT_MAX_NOTES = 700;
-const DEFAULT_MAX_DEGREE = 0;
-
-async function createSettings() {
-  const sectionName = "graph-ui.settings"
-  await joplin.settings.registerSection(sectionName, {
-    label: 'Graph UI',
-    // Check out https://forkaweso.me/Fork-Awesome/icons/ for available icons.
-    iconName: 'fas fa-sitemap'
-  });
-
-  await joplin.settings.registerSetting('nodeNameFontSize', {
-    value: DEFAULT_NODE_FONT_SIZE,
-    type: SettingItemType.Int,
-    section: sectionName,
-    public: true,
-    label: '(Requires restart) Size of the node label font',
-    description: 'Font size for the label of nodes on the graph..'
-  });
-
-  await joplin.settings.registerSetting('maxNodesOnGraph', {
-    value: DEFAULT_MAX_NOTES,
-    type: SettingItemType.Int,
-    section: sectionName,
-    public: true,
-    label: 'Max nodes in graph',
-    description: 'Maximum number of nodes shown in the graph. Most recent nodes have priority.'
-  });
-
-  await joplin.settings.registerSetting("filteredNotebookNames", {
-    value: "",
-    type: SettingItemType.String,
-    section: sectionName,
-    public: true,
-    label: "Notebooks names to filter out",
-    description: "Comma separated list of Notebook names to filter.",
-  });
-
-  await joplin.settings.registerSetting("filterChildNotebooks", {
-    value: true,
-    type: SettingItemType.Bool,
-    section: sectionName,
-    public: true,
-    label: "Filter out child notebooks",
-    description: "Filters out notebooks that are children of the notebooks listed above.",
-  });
-
-  await joplin.settings.registerSetting("maxSeparationDegree", {
-    value: DEFAULT_MAX_DEGREE,
-    type: SettingItemType.Int,
-    minimum: 0,
-    section: sectionName,
-    public: true,
-    label: "Max degree of separation",
-    description: "Maximum number of link jumps from selected note. Zero for all notes",
-  });
-}
 
 /**
  * Returns a list of notes to be filtered out of the graph display.
  */
 async function getFilteredNotes(notes: Map<string, joplinData.Note>,
   notebooks: Array<joplinData.Notebook>) {
-  const filteredNotebookNames = await joplin.settings.value("filteredNotebookNames");
+  const filteredNotebookNames = await joplin.settings.value(SETTING_NOTEBOOK_NAMES_TO_FILTER);
   // No filtering needed.
   if ("" === filteredNotebookNames) return new Set();
 
@@ -83,7 +27,7 @@ async function getFilteredNotes(notes: Map<string, joplinData.Note>,
   // Turn notebook names into IDs.
   const notebookIDsToFilter : Set<string> = new Set(namesToFilter.map(name => notebooksByName.get(name)));
 
-  const shouldFilterChildren = await joplin.settings.value("filterChildNotebooks");
+  const shouldFilterChildren = await joplin.settings.value(SETTING_FILTER_CHILD_NOTEBOOKS);
   const filteredNotes = new Set<string>();
   notes.forEach(function(n, id) {
     var parentNotebook: joplinData.Note = notebooksById.get(n.parent_id)
@@ -109,7 +53,9 @@ async function getFilteredNotes(notes: Map<string, joplinData.Note>,
 
 async function fetchData() {
   const selectedNote = await joplin.workspace.selectedNote();
-  const notes = await joplinData.getNotes(selectedNote.id);
+  const maxDegree = await joplin.settings.value(SETTING_MAX_SEPARATION_DEGREE);
+  const maxNotes = await joplin.settings.value(SETTING_MAX_NODES)
+  const notes = await joplinData.getNotes(selectedNote.id, maxNotes, maxDegree);
   const notebooks = await joplinData.getNotebooks();
   var noteIDsToExclude = await getFilteredNotes(notes, notebooks);
 
@@ -160,7 +106,7 @@ async function fetchData() {
 
 joplin.plugins.register({
   onStart: async function() {
-    await createSettings();
+    await registerSettings();
     const panels = joplin.views.panels;
     const view = await (panels as any).create();
     await panels.setHtml(view, 'Note Graph');
@@ -168,7 +114,7 @@ joplin.plugins.register({
     var prevData = {};
     var syncOngoing = false;
     var data = await fetchData();
-    var prevNodeFontSize = await joplin.settings.value("nodeNameFontSize");
+    var prevNodeFontSize = await joplin.settings.value(SETTING_NODE_FONT_SIZE);
     var nodeFontSize = prevNodeFontSize
 
     // Create a toolbar button
@@ -214,7 +160,7 @@ joplin.plugins.register({
     });
 
     async function drawPanel() {
-      const nodeFontSize = await joplin.settings.value("nodeNameFontSize");
+      const nodeFontSize = await joplin.settings.value(SETTING_NODE_FONT_SIZE);
       await panels.setHtml(view, `
                   <div class="graph-content">
                       <div class="header-area">
@@ -241,7 +187,7 @@ joplin.plugins.register({
       updateGraphView();
     });
     await joplin.settings.onChange(() => {
-      joplin.settings.value("nodeNameFontSize").then(newFontSize => {
+      joplin.settings.value(SETTING_NODE_FONT_SIZE).then(newFontSize => {
         nodeFontSize = newFontSize;
         // TODO: why does this cause the graph to disappear?
         // drawPanel();
