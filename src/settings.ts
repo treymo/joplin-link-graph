@@ -3,6 +3,7 @@ import { SettingItemType } from 'api/types';
 
 export const SETTING_NODE_FONT_SIZE = "nodeNameFontSize";
 const DEFAULT_NODE_FONT_SIZE = 20;
+export const SETTING_NODE_DISTANCE = "nodeVisualDistance";
 
 export const SETTING_MAX_NODES = "maxNodesOnGraph";
 const DEFAULT_MAX_NOTES = 700;
@@ -28,6 +29,15 @@ export async function registerSettings() {
     public: true,
     label: '(Requires restart) Size of the node label font',
     description: 'Font size for the label of nodes on the graph..'
+  });
+
+  await joplin.settings.registerSetting(SETTING_NODE_DISTANCE, {
+    value: 100,
+    type: SettingItemType.Int,
+    section: sectionName,
+    public: true,
+    label: 'Distance between nodes',
+    description: 'The visual distance between nodes in the graph.'
   });
 
   await joplin.settings.registerSetting(SETTING_MAX_NODES, {

@@ -1,6 +1,6 @@
 import joplin from 'api';
 import * as joplinData from './data';
-import { registerSettings, SETTING_FILTER_CHILD_NOTEBOOKS,
+import { registerSettings, SETTING_FILTER_CHILD_NOTEBOOKS, SETTING_NODE_DISTANCE,
   SETTING_MAX_NODES, SETTING_MAX_SEPARATION_DEGREE, SETTING_NODE_FONT_SIZE,
   SETTING_NOTEBOOK_NAMES_TO_FILTER } from './settings';
 import { ToolbarButtonLocation } from 'api/types';
@@ -52,9 +52,11 @@ async function getFilteredNotes(notes: Map<string, joplinData.Note>,
 }
 
 async function fetchData() {
+  const nodeDistanceRatio = await joplin.settings.value(SETTING_NODE_DISTANCE) / 100.0;
   const selectedNote = await joplin.workspace.selectedNote();
   const maxDegree = await joplin.settings.value(SETTING_MAX_SEPARATION_DEGREE);
   const maxNotes = await joplin.settings.value(SETTING_MAX_NODES)
+
   const notes = await joplinData.getNotes(selectedNote.id, maxNotes, maxDegree);
   const notebooks = await joplinData.getNotebooks();
   var noteIDsToExclude = await getFilteredNotes(notes, notebooks);
@@ -63,6 +65,7 @@ async function fetchData() {
     "nodes": [],
     "edges": [],
     "currentNoteID": selectedNote.id,
+    "nodeDistanceRatio": nodeDistanceRatio,
   };
 
   notes.forEach(function(note, id) {
@@ -187,11 +190,7 @@ joplin.plugins.register({
       updateGraphView();
     });
     await joplin.settings.onChange(() => {
-      joplin.settings.value(SETTING_NODE_FONT_SIZE).then(newFontSize => {
-        nodeFontSize = newFontSize;
-        // TODO: why does this cause the graph to disappear?
-        // drawPanel();
-      });
+      updateGraphView();
     });
 
     await joplin.workspace.onSyncStart(() => {

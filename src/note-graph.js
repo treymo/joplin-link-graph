@@ -19,7 +19,7 @@ async function refreshData(force) {
         force: typeof force === 'undefined' ? false : force,
       });
     if (typeof updatedData !== 'undefined') {
-      update(updatedData);
+      buildGraph(updatedData);
     }
   } catch(err) {
     console.warn("error getting data update: ", err);
@@ -42,6 +42,7 @@ function buildGraph(data) {
   width = window.innerWidth
   height = window.innerHeight
 
+  d3.select("#note_graph > svg").remove();
   svg = d3.select("#note_graph")
     .append("svg")
       .attr("width", width + margin.left + margin.right)
@@ -55,7 +56,7 @@ function buildGraph(data) {
         .id(function(d) { return d.id; }))
       .force("charge", d3.forceManyBody()
         .strength(function() { return -500;}))
-      .force("nocollide", d3.forceCollide(200))
+      .force("nocollide", d3.forceCollide(data.nodeDistanceRatio * 200))
       .force("center", d3.forceCenter(width / 2, height / 2));
 
   //add zoom capabilities
