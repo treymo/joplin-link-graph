@@ -1,8 +1,6 @@
 import joplin from 'api';
 import * as joplinData from './data';
-import { registerSettings, SETTING_FILTER_CHILD_NOTEBOOKS, SETTING_NODE_DISTANCE,
-  SETTING_MAX_NODES, SETTING_MAX_SEPARATION_DEGREE, SETTING_NODE_FONT_SIZE,
-  SETTING_NOTEBOOK_NAMES_TO_FILTER } from './settings';
+import { registerSettings } from './settings';
 import { ToolbarButtonLocation } from 'api/types';
 var deepEqual = require('deep-equal')
 
@@ -11,7 +9,7 @@ var deepEqual = require('deep-equal')
  */
 async function getFilteredNotes(notes: Map<string, joplinData.Note>,
   notebooks: Array<joplinData.Notebook>) {
-  const filteredNotebookNames = await joplin.settings.value(SETTING_NOTEBOOK_NAMES_TO_FILTER);
+  const filteredNotebookNames = await joplin.settings.value("SETTING_NOTEBOOK_NAMES_TO_FILTER");
   // No filtering needed.
   if ("" === filteredNotebookNames) return new Set();
 
@@ -27,7 +25,7 @@ async function getFilteredNotes(notes: Map<string, joplinData.Note>,
   // Turn notebook names into IDs.
   const notebookIDsToFilter : Set<string> = new Set(namesToFilter.map(name => notebooksByName.get(name)));
 
-  const shouldFilterChildren = await joplin.settings.value(SETTING_FILTER_CHILD_NOTEBOOKS);
+  const shouldFilterChildren = await joplin.settings.value("SETTING_FILTER_CHILD_NOTEBOOKS");
   const filteredNotes = new Set<string>();
   notes.forEach(function(n, id) {
     var parentNotebook: joplinData.Note = notebooksById.get(n.parent_id)
@@ -53,8 +51,8 @@ async function getFilteredNotes(notes: Map<string, joplinData.Note>,
 
 async function fetchData() {
   const selectedNote = await joplin.workspace.selectedNote();
-  const maxDegree = await joplin.settings.value(SETTING_MAX_SEPARATION_DEGREE);
-  const maxNotes = await joplin.settings.value(SETTING_MAX_NODES)
+  const maxDegree = await joplin.settings.value("SETTING_MAX_SEPARATION_DEGREE");
+  const maxNotes = await joplin.settings.value("SETTING_MAX_NODES")
 
   const notes = await joplinData.getNotes(selectedNote.id, maxNotes, maxDegree);
   const notebooks = await joplinData.getNotebooks();
@@ -64,8 +62,8 @@ async function fetchData() {
     "nodes": [],
     "edges": [],
     "currentNoteID": selectedNote.id,
-    "nodeFontSize": await joplin.settings.value(SETTING_NODE_FONT_SIZE),
-    "nodeDistanceRatio": await joplin.settings.value(SETTING_NODE_DISTANCE) / 100.0,
+    "nodeFontSize": await joplin.settings.value("SETTING_NODE_FONT_SIZE"),
+    "nodeDistanceRatio": await joplin.settings.value("SETTING_NODE_DISTANCE") / 100.0,
   };
 
   notes.forEach(function(note, id) {
@@ -111,7 +109,7 @@ joplin.plugins.register({
   onStart: async function() {
     await registerSettings();
     const panels = joplin.views.panels;
-    const view = await (panels as any).create();
+    const view = await (panels as any).create("note-graph-view");
     await panels.setHtml(view, 'Note Graph');
 
     var prevData = {};
