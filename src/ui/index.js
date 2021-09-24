@@ -11,6 +11,16 @@ function poll() {
 
 poll();
 
+function update() {
+  webviewApi.postMessage({name: 'update'}).then((event) => {
+    buildGraph(event.data);
+  });
+}
+
+document.getElementById("redrawButton").addEventListener("click", update);
+
+update();
+
 var simulation, svg;
 var width, height;
 
@@ -44,10 +54,10 @@ function buildGraph(data) {
   function zoom_actions(event) {
       svg.attr("transform", event.transform)
   }
-  update(data);
+  updateGraph(data);
 }
 
-function update(data) {
+function updateGraph(data) {
   // Remove nodes and links from the last graph
   svg.selectAll(".nodes").remove();
   svg.selectAll(".links").remove();

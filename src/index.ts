@@ -54,8 +54,6 @@ async function fetchData() {
   const selectedNote = await joplin.workspace.selectedNote();
   const selectedFolder = await joplin.workspace.selectedFolder();
 
-  console.log("selected folder : ", selectedFolder);
-
   const maxDegree = await joplin.settings.value("SETTING_MAX_SEPARATION_DEGREE");
   const maxNotes = await joplin.settings.value("SETTING_MAX_NODES")
 
@@ -110,17 +108,51 @@ async function fetchData() {
   return data;
 }
 
+
+async function redraw() {
+  let data = await fetchData();
+  recordModelChanges( {name: "redraw", data:data} );
+  notifyUI();
+}
+
+//rendez-vous between worker and job queue
+async function notifyUI() {
+    if(pollCb && modelChanges.length > 0) {
+      let modelChange = modelChanges.shift();
+      pollCb(modelChange);
+      pollCb = undefined;
+    }
+}
+
+async function recordModelChanges(event) {
+  modelChanges.push(event);
+}
+
+let data : any;
 let pollCb: any
 let modelChanges = [];
 
 joplin.plugins.register({
   onStart: async function() {
+
     await registerSettings();
     const panels = joplin.views.panels;
     const view = await (panels as any).create("note-graph-view");
     await panels.setHtml(view, 'Note Graph is Loading');
 
-    var data;
+    async function drawPanel() {
+      await panels.setHtml(view, `
+                  <div class="graph-content">
+                      <div class="header-area">
+                        <button id="redrawButton">Redraw Graph</button>
+                        <p class="header">Note Graph</p>
+                      </div>
+                      <div class="container">
+                        <div id="note_graph"/>
+                      </div>
+        </div>
+      `);
+    };
 
     // Create a toolbar button
     await joplin.commands.register({
@@ -134,6 +166,7 @@ joplin.plugins.register({
     });
     await joplin.views.toolbarButtons.create('graphUIButton', 'showHideGraphUI', ToolbarButtonLocation.NoteToolbar);
 
+    await drawPanel();
     await panels.addScript(view, './webview.css');
     await panels.addScript(view, './ui/index.js');
 
@@ -143,57 +176,32 @@ joplin.plugins.register({
         notifyUI();
         return p;
       }
+      else if (message.name === "update") {
+        return {name: "update", data: data};
+      }
       else if (message.name === "navigateTo") {
         joplin.commands.execute('openNote', message.id)
       }
     });
 
-    async function drawPanel() {
-      await panels.setHtml(view, `
-                  <div class="graph-content">
-                      <div class="header-area">
-                        <button onclick="refreshData(true)">Redraw Graph</button>
-                        <p class="header">Note Graph</p>
-                      </div>
-                      <div class="container">
-                        <div id="note_graph"/>
-                      </div>
-        </div>
-      `);
-    };
-
-    //rendez-vous between worker and job queue
-    async function notifyUI() {
-        if(pollCb && modelChanges.length > 0) {
-          let modelChange = modelChanges.shift();
-          pollCb(modelChange);
-          pollCb = undefined;
-        }
-    }
-
-    async function recordModelChanges(event) {
-      modelChanges.push(event);
-    }
-
-    await drawPanel();
-
     await joplin.workspace.onNoteChange( async () => {
-      let data = await fetchData();
+      data = await fetchData();
       recordModelChanges( {name: "noteChange", data:data} );
       notifyUI();
     });
     await joplin.workspace.onNoteSelectionChange( async () => {
-      let data = await fetchData();
+      data = await fetchData();
       recordModelChanges( {name: "noteSelectionChange", data:data} );
       notifyUI();
     });
     await joplin.workspace.onSyncComplete( async () => {
-      let data = await fetchData();
+      data = await fetchData();
       recordModelChanges({name:"syncComplete", data: data});
       notifyUI();
     });
     await joplin.settings.onChange( async () => {
-      recordModelChanges({name:"settingChange"});
+      data = await fetchData();
+      recordModelChanges({name:"settingsChange"});
       notifyUI();
     });
   },
