@@ -1,7 +1,7 @@
 import joplin from 'api';
 import * as joplinData from './data';
 import { registerSettings } from './settings';
-import { ToolbarButtonLocation } from 'api/types';
+import { MenuItemLocation, ToolbarButtonLocation } from 'api/types';
 var deepEqual = require('deep-equal')
 
 /**
@@ -127,7 +127,7 @@ joplin.plugins.register({
       },
     });
     await joplin.views.toolbarButtons.create('graphUIButton', 'showHideGraphUI', ToolbarButtonLocation.NoteToolbar);
-
+    await joplin.views.menuItems.create('showOrHideGraphMenuItem','showHideGraphUI',MenuItemLocation.View,{accelerator:"F8"});
     // Build Panel
     await panels.addScript(view, './d3.min.js');
     await panels.addScript(view, './webview.css');
