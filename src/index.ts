@@ -1,7 +1,8 @@
 import joplin from 'api';
 import * as joplinData from './data';
 import { registerSettings } from './settings';
-import { ToolbarButtonLocation } from 'api/types';
+import { MenuItemLocation, ToolbarButtonLocation } from 'api/types';
+
 
 /**
  * Returns a list of notes to be filtered out of the graph display.
@@ -167,6 +168,8 @@ joplin.plugins.register({
     await joplin.views.toolbarButtons.create('graphUIButton', 'showHideGraphUI', ToolbarButtonLocation.NoteToolbar);
 
     await drawPanel();
+    await joplin.views.menuItems.create('showOrHideGraphMenuItem','showHideGraphUI',MenuItemLocation.View,{accelerator:"F8"});
+    // Build Panel
     await panels.addScript(view, './webview.css');
     await panels.addScript(view, './ui/index.js');
 
