@@ -109,13 +109,6 @@ async function fetchData() {
   return data;
 }
 
-
-async function redraw() {
-  let data = await fetchData();
-  recordModelChanges( {name: "redraw", data:data} );
-  notifyUI();
-}
-
 //rendez-vous between worker and job queue
 async function notifyUI() {
     if(pollCb && modelChanges.length > 0) {
