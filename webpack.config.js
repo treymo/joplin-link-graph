@@ -196,9 +196,6 @@ function resolveExtraScriptPath(name) {
 		output: {
 			filename: `${nameNoExt}.js`,
 			path: distDir,
-			library: 'default',
-			libraryTarget: 'commonjs',
-			libraryExport: 'default',
 		},
 	};
 }
@@ -249,6 +246,11 @@ function main(processArgv) {
 		// temporary file before packaging the plugin.
 		createArchive: [createArchiveConfig],
 	};
+
+	if (argv.mode === 'development') {
+		console.log("adding source-map for development...", configName);
+    	configs[configName].devtool = 'source-map';
+  	}
 
 	// If we are running the first config step, we clean up and create the build
 	// directories.

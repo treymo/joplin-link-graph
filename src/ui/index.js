@@ -1,42 +1,29 @@
+import * as d3 from "d3";
 
-// https://stackoverflow.com/questions/8618464/how-to-wait-for-another-js-to-load-to-proceed-operation
-function whenAvailable(name, callback) {
-    var interval = 10; // ms
-    window.setTimeout(function() {
-        if (window[name]) {
-            callback(window[name]);
-        } else {
-            whenAvailable(name, callback);
-        }
-    }, interval);
-};
-
-async function refreshData(force) {
-  try {
-    const updatedData = await webviewApi.postMessage(
-      {
-        name: 'checkForUpdate',
-        force: typeof force === 'undefined' ? false : force,
-      });
-    if (typeof updatedData !== 'undefined') {
-      buildGraph(updatedData);
+function poll() {
+  webviewApi.postMessage({name: 'poll'}).then((event) => {
+    if(event.data) {
+      buildGraph(event.data);
     }
-  } catch(err) {
-    console.warn("error getting data update: ", err);
-  }
+    poll();
+  })
 }
 
-whenAvailable("d3", async function() {
-  const response = await webviewApi.postMessage({name: 'd3JSLoaded'});
-  buildGraph(response);
+poll();
 
-  setInterval(async function() {
-    await refreshData()
-  }, 1000); // One second
-});
+function update() {
+  webviewApi.postMessage({name: 'update'}).then((event) => {
+    buildGraph(event.data);
+  });
+}
+
+document.getElementById("redrawButton").addEventListener("click", update);
+
+update();
 
 var simulation, svg;
 var width, height;
+
 function buildGraph(data) {
   var margin = {top: 10, right: 10, bottom: 10, left: 10};
   width = window.innerWidth
@@ -67,10 +54,10 @@ function buildGraph(data) {
   function zoom_actions(event) {
       svg.attr("transform", event.transform)
   }
-  update(data);
+  updateGraph(data);
 }
 
-function update(data) {
+function updateGraph(data) {
   // Remove nodes and links from the last graph
   svg.selectAll(".nodes").remove();
   svg.selectAll(".links").remove();
@@ -137,3 +124,6 @@ function update(data) {
         })
   }
 }
+
+
+
