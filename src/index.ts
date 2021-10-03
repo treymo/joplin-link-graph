@@ -2,6 +2,7 @@ import joplin from 'api';
 import * as joplinData from './data';
 import { registerSettings } from './settings';
 import { MenuItemLocation, ToolbarButtonLocation } from 'api/types';
+var deepEqual = require('deep-equal')
 
 
 /**
@@ -109,7 +110,7 @@ async function fetchData() {
   return data;
 }
 
-//rendez-vous between worker and job queue
+// rendez-vous between worker and job queue
 async function notifyUI() {
     if(pollCb && modelChanges.length > 0) {
       let modelChange = modelChanges.shift();
@@ -133,6 +134,8 @@ joplin.plugins.register({
     const panels = joplin.views.panels;
     const view = await (panels as any).create("note-graph-view");
     await panels.setHtml(view, 'Note Graph is Loading');
+    var prevData = {};
+    var syncOngoing = false;
 
     async function drawPanel() {
       await panels.setHtml(view, `
@@ -180,25 +183,34 @@ joplin.plugins.register({
       }
     });
 
-    await joplin.workspace.onNoteChange( async () => {
+    async function updateUI(eventName: string) {
+      if (syncOngoing) {
+        return;
+      }
       data = await fetchData();
-      recordModelChanges( {name: "noteChange", data:data} );
-      notifyUI();
+      var dataChanged = !deepEqual(data, prevData)
+      if (dataChanged) {
+        prevData = data;
+        recordModelChanges( {name: eventName, data:data} );
+        notifyUI();
+      }
+    };
+
+    await joplin.workspace.onNoteChange( async () => {
+      updateUI("noteChange");
     });
     await joplin.workspace.onNoteSelectionChange( async () => {
-      data = await fetchData();
-      recordModelChanges( {name: "noteSelectionChange", data:data} );
-      notifyUI();
+      updateUI("noteSelectionChange");
+    });
+    await joplin.workspace.onSyncStart( async () => {
+      syncOngoing = true;
     });
     await joplin.workspace.onSyncComplete( async () => {
-      data = await fetchData();
-      recordModelChanges({name:"syncComplete", data: data});
-      notifyUI();
+      syncOngoing = false;
+      updateUI("syncComplete");
     });
     await joplin.settings.onChange( async () => {
-      data = await fetchData();
-      recordModelChanges({name:"settingsChange"});
-      notifyUI();
+      updateUI("settingsChange");
     });
   },
 });
