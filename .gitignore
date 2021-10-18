@@ -4,3 +4,4 @@ publish/
 
 *.code-workspace
 .vscode/
+/scratch.js

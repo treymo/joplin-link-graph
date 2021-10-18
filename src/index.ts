@@ -2,11 +2,14 @@ import joplin from 'api';
 import * as joplinData from './data';
 import { registerSettings } from './settings';
 import { MenuItemLocation, ToolbarButtonLocation } from 'api/types';
+import {Notebook} from "./data";
 var deepEqual = require('deep-equal')
 
 
 /**
  * Returns a list of notes to be filtered out of the graph display.
+ * This function is use when user choose exclude style
+ *
  */
 async function getFilteredNotes(notes: Map<string, joplinData.Note>,
   notebooks: Array<joplinData.Notebook>) {
@@ -50,6 +53,11 @@ async function getFilteredNotes(notes: Map<string, joplinData.Note>,
   return filteredNotes;
 }
 
+//Use for include style
+
+
+
+
 var count = 0;
 
 async function fetchData() {
@@ -71,42 +79,93 @@ async function fetchData() {
     "nodeDistanceRatio": await joplin.settings.value("SETTING_NODE_DISTANCE") / 100.0,
   };
 
-  notes.forEach(function(note, id) {
-    if (noteIDsToExclude.has(id)) return;
+  async function extractedAllNoteNotOnExludeNoteBookList() {
+    notes.forEach(function (note, id) {
+      if (noteIDsToExclude.has(id)) return;
 
-    var links = note["links"]
-    for (const link of links) {
-      if (noteIDsToExclude.has(link)) continue;
+      var links = note["links"]
+      for (const link of links) {
+        if (noteIDsToExclude.has(link)) continue;
 
-      var linkDestExists = notes.has(link);
-      if (linkDestExists) {
-        data.edges.push({
-          "source": id,
-          "target": link,
-          "focused": (id === selectedNote.id || link === selectedNote.id),
-        });
+        var linkDestExists = notes.has(link);
+        if (linkDestExists) {
+          data.edges.push({
+            "source": id,
+            "target": link,
+            "focused": (id === selectedNote.id || link === selectedNote.id),
+          });
 
-        // Mark nodes that are adjacent to the currently selected note.
-        if (id === selectedNote.id) {
-          notes.get(link).linkedToCurrentNote = true;
-        } else if (link == selectedNote.id) {
-          notes.get(id).linkedToCurrentNote = true;
-        } else {
-          const l = notes.get(link);
-          l.linkedToCurrentNote = (l.linkedToCurrentNote || false);
+          // Mark nodes that are adjacent to the currently selected note.
+          if (id === selectedNote.id) {
+            notes.get(link).linkedToCurrentNote = true;
+          } else if (link == selectedNote.id) {
+            notes.get(id).linkedToCurrentNote = true;
+          } else {
+            const l = notes.get(link);
+            l.linkedToCurrentNote = (l.linkedToCurrentNote || false);
+          }
         }
       }
-    }
-  });
+    });
 
-  notes.forEach(function(note, id) {
-    if (noteIDsToExclude.has(id)) return;
-    data.nodes.push({
-      "id": id,
-      "title": note.title,
-      "focused": note.linkedToCurrentNote,
-    })
-  });
+    notes.forEach(function (note, id) {
+      if (noteIDsToExclude.has(id)) {
+      } else {
+        data.nodes.push({
+          "id": id,
+          "title": note.title,
+          "focused": note.linkedToCurrentNote,
+        })
+      }
+    });
+  }
+
+  async function extractedOnlyNoteOnIncludeNoteBook() {
+    notes.forEach(function (note, id) {
+      if (!noteIDsToExclude.has(id)) return;
+
+      var links = note["links"]
+      for (const link of links) {
+        if (noteIDsToExclude.has(link)) continue;
+
+        var linkDestExists = notes.has(link);
+        if (linkDestExists) {
+          data.edges.push({
+            "source": id,
+            "target": link,
+            "focused": (id === selectedNote.id || link === selectedNote.id),
+          });
+
+          // Mark nodes that are adjacent to the currently selected note.
+          if (id === selectedNote.id) {
+            notes.get(link).linkedToCurrentNote = true;
+          } else if (link == selectedNote.id) {
+            notes.get(id).linkedToCurrentNote = true;
+          } else {
+            const l = notes.get(link);
+            l.linkedToCurrentNote = (l.linkedToCurrentNote || false);
+          }
+        }
+      }
+    });
+
+    notes.forEach(function (note, id) {
+      if (noteIDsToExclude.has(id)) {
+        data.nodes.push({
+          "id": id,
+          "title": note.title,
+          "focused": note.linkedToCurrentNote,
+        })
+      }
+    });
+  }
+  var choice = await joplin.settings.value("SETTING_TYPE_OF_NOTEBOOK_FILTER");
+  console.log(choice)
+  if (choice === "include"){
+    await extractedOnlyNoteOnIncludeNoteBook()
+  } else if  (choice === "exclude") {
+    await extractedAllNoteNotOnExludeNoteBookList();
+  }
   return data;
 }
 

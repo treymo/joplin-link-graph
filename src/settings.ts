@@ -1,5 +1,5 @@
 import joplin from 'api';
-import { SettingItemType } from 'api/types';
+import {SettingItemType} from 'api/types';
 
 const DEFAULT_NODE_FONT_SIZE = 20;
 const DEFAULT_MAX_NOTES = 700;
@@ -38,12 +38,27 @@ export async function registerSettings() {
       label: 'Max nodes in graph',
       description: 'Maximum number of nodes shown in the graph. Most recent nodes have priority.'
     },
+    SETTING_TYPE_OF_NOTEBOOK_FILTER: {
+      value: "include",
+      type: SettingItemType.String,
+      section: sectionName,
+      isEnum:true,
+      public:true,
+      options: {
+        include: "Include",
+        exclude: "Exclude"
+      },
+      label: "Choose the way to filter your notebook",
+      description: "Include mean only those note book in the list will appear on the graph, and exclue mean the oppisite, filter only the note book with name in list",
+
+    },
+
     SETTING_NOTEBOOK_NAMES_TO_FILTER: {
       value: "",
       type: SettingItemType.String,
       section: sectionName,
       public: true,
-      label: "Notebooks names to filter out",
+      label: "List of Notebook will be filter, the way of filter base on your choice",
       description: "Comma separated list of Notebook names to filter.",
     },
     SETTING_FILTER_CHILD_NOTEBOOKS: {
