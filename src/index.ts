@@ -2,7 +2,7 @@ import joplin from 'api';
 import * as joplinData from './data';
 import { registerSettings } from './settings';
 import { MenuItemLocation, ToolbarButtonLocation } from 'api/types';
-import {Notebook} from "./data";
+import {Note, Notebook} from "./data";
 var deepEqual = require('deep-equal')
 
 
@@ -24,6 +24,8 @@ async function getFilteredNotes(notes: Map<string, joplinData.Note>,
 
   // Get a list of valid notebook names to filter out.
   var namesToFilter : Array<string> = filteredNotebookNames.split(",");
+  // Trim all whitespace
+  namesToFilter =  namesToFilter.map(name => name.trim())
   namesToFilter = namesToFilter.filter(name => notebooksByName.has(name));
 
   // Turn notebook names into IDs.
@@ -71,6 +73,8 @@ async function fetchData() {
   const notebooks = await joplinData.getNotebooks();
   var noteIDsToExclude = await getFilteredNotes(notes, notebooks);
 
+  var choice = await joplin.settings.value("SETTING_TYPE_OF_NOTEBOOK_FILTER");
+
   const data = {
     "nodes": [],
     "edges": [],
@@ -79,33 +83,38 @@ async function fetchData() {
     "nodeDistanceRatio": await joplin.settings.value("SETTING_NODE_DISTANCE") / 100.0,
   };
 
-  async function extractedAllNoteNotOnExludeNoteBookList() {
-    notes.forEach(function (note, id) {
-      if (noteIDsToExclude.has(id)) return;
-
-      var links = note["links"]
-      for (const link of links) {
+  function addEdge(note: Note, id: string) {
+    var links = note["links"]
+    for (const link of links) {
+      if (choice == "exclude") {
         if (noteIDsToExclude.has(link)) continue;
+      } else {}
 
-        var linkDestExists = notes.has(link);
-        if (linkDestExists) {
-          data.edges.push({
-            "source": id,
-            "target": link,
-            "focused": (id === selectedNote.id || link === selectedNote.id),
-          });
+      var linkDestExists = notes.has(link);
+      if (linkDestExists) {
+        data.edges.push({
+          "source": id,
+          "target": link,
+          "focused": (id === selectedNote.id || link === selectedNote.id),
+        });
 
-          // Mark nodes that are adjacent to the currently selected note.
-          if (id === selectedNote.id) {
-            notes.get(link).linkedToCurrentNote = true;
-          } else if (link == selectedNote.id) {
-            notes.get(id).linkedToCurrentNote = true;
-          } else {
-            const l = notes.get(link);
-            l.linkedToCurrentNote = (l.linkedToCurrentNote || false);
-          }
+        // Mark nodes that are adjacent to the currently selected note.
+        if (id === selectedNote.id) {
+          notes.get(link).linkedToCurrentNote = true;
+        } else if (link == selectedNote.id) {
+          notes.get(id).linkedToCurrentNote = true;
+        } else {
+          const l = notes.get(link);
+          l.linkedToCurrentNote = (l.linkedToCurrentNote || false);
         }
       }
+    }
+  }
+
+  async function extractedAllNoteNotOnExcludedNoteBookList() {
+    notes.forEach(function (note, id) {
+      if (noteIDsToExclude.has(id)) return;
+      addEdge(note, id);
     });
 
     notes.forEach(function (note, id) {
@@ -124,29 +133,7 @@ async function fetchData() {
     notes.forEach(function (note, id) {
       if (!noteIDsToExclude.has(id)) return;
 
-      var links = note["links"]
-      for (const link of links) {
-        if (noteIDsToExclude.has(link)) continue;
-
-        var linkDestExists = notes.has(link);
-        if (linkDestExists) {
-          data.edges.push({
-            "source": id,
-            "target": link,
-            "focused": (id === selectedNote.id || link === selectedNote.id),
-          });
-
-          // Mark nodes that are adjacent to the currently selected note.
-          if (id === selectedNote.id) {
-            notes.get(link).linkedToCurrentNote = true;
-          } else if (link == selectedNote.id) {
-            notes.get(id).linkedToCurrentNote = true;
-          } else {
-            const l = notes.get(link);
-            l.linkedToCurrentNote = (l.linkedToCurrentNote || false);
-          }
-        }
-      }
+      addEdge(note, id);
     });
 
     notes.forEach(function (note, id) {
@@ -159,12 +146,10 @@ async function fetchData() {
       }
     });
   }
-  var choice = await joplin.settings.value("SETTING_TYPE_OF_NOTEBOOK_FILTER");
-  console.log(choice)
   if (choice === "include"){
     await extractedOnlyNoteOnIncludeNoteBook()
   } else if  (choice === "exclude") {
-    await extractedAllNoteNotOnExludeNoteBookList();
+    await extractedAllNoteNotOnExcludedNoteBookList();
   }
   return data;
 }
