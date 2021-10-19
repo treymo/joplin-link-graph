@@ -13,7 +13,9 @@ poll();
 
 function update() {
   webviewApi.postMessage({name: 'update'}).then((event) => {
-    buildGraph(event.data);
+    if (event.data) {
+      buildGraph(event.data);
+    }
   });
 }
 

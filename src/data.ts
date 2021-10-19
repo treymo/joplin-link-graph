@@ -39,6 +39,55 @@ export async function getNotes(
   }
 }
 
+/**
+ * Returns a filtered map of notes by notebook name.
+ */
+export async function filterNotesByNotebookName(notes: Map<string, Note>,
+  notebooks: Array<Notebook>,
+  filteredNotebookNames: Array<string>,
+  shouldFilterChildren: boolean,
+  isIncludeFilter: boolean): Promise<Map<string, Note>> {
+  // No filtering needed.
+  if (filteredNotebookNames.length < 1) return notes;
+
+  const notebooksByName = new Map<string, string>();
+  notebooks.forEach(n => notebooksByName.set(n.title, n.id))
+  const notebooksById = new Map<string, Notebook>();
+  notebooks.forEach(n => notebooksById.set(n.id, n))
+
+  // Get a list of valid notebook names to filter out.
+  filteredNotebookNames = filteredNotebookNames.filter(name => notebooksByName.has(name));
+  // Turn notebook names into a set of IDs.
+  const notebookIDsToFilter : Set<string> = new Set(filteredNotebookNames.map(name => notebooksByName.get(name)));
+
+  function shouldIncludeNote(note_id: string, parent_id: string): boolean {
+    if (shouldFilterChildren) {
+      var parentNotebook: Notebook = notebooksById.get(parent_id)
+      // Filter a note if any of its ancestor notebooks are filtered.
+      while (parentNotebook !== undefined) {
+        if (notebookIDsToFilter.has(parentNotebook.id)) {
+          return isIncludeFilter;
+        }
+        parentNotebook = notebooksById.get(parentNotebook.parent_id);
+      }
+    }
+    if (notebookIDsToFilter.has(parent_id)) {
+      return isIncludeFilter;
+    }
+    return !isIncludeFilter;
+  }
+
+  var filteredNotes = new Map<string, Note>();
+  notes.forEach(function(n, id) {
+    var parentNotebook: Notebook = notebooksById.get(n.parent_id)
+    if (shouldIncludeNote(id, n.parent_id)) {
+      filteredNotes.set(id, n);
+    }
+  });
+
+  return filteredNotes;
+}
+
 // Fetches every note.
 async function getAllNotes(maxNotes: number): Promise<Map<string, Note>> {
   var allNotes = []
@@ -78,17 +127,15 @@ async function getLinkedNotes(source_id:string, maxDegree:number) : Promise<Map<
     // Traverse a new batch of pending note ids, storing the note data in
     // the resulting map, and stashing the newly found linked notes for the
     // next iteration.
-
     const notes = await getNoteArray(pending);
     visited.push(...pending);
     pending = [];
 
     notes.forEach(note => {
-
-      // store note data to be returned at the end
-      // of the traversal
+      // store note data to be returned at the end of the traversal
       const links = getAllLinksForNote(note.body);
       noteMap.set(note.id, {
+        id: note.id,
         title: note.title,
         parent_id: note.parent_id,
         links: links});
