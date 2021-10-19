@@ -40,7 +40,7 @@ export async function getNotes(
 }
 
 /**
- * Returns a list of notes to be filtered out of the graph display.
+ * Returns a filtered map of notes by notebook name.
  */
 export async function filterNotesByNotebookName(notes: Map<string, Note>,
   notebooks: Array<Notebook>,
@@ -50,10 +50,9 @@ export async function filterNotesByNotebookName(notes: Map<string, Note>,
   // No filtering needed.
   if (filteredNotebookNames.length < 1) return notes;
 
-  var newNotes = new Map<string, Note>();
-  const notebooksByName = new Map();
-  const notebooksById = new Map();
+  const notebooksByName = new Map<string, string>();
   notebooks.forEach(n => notebooksByName.set(n.title, n.id))
+  const notebooksById = new Map<string, Notebook>();
   notebooks.forEach(n => notebooksById.set(n.id, n))
 
   // Get a list of valid notebook names to filter out.
@@ -63,7 +62,7 @@ export async function filterNotesByNotebookName(notes: Map<string, Note>,
 
   function shouldIncludeNote(note_id: string, parent_id: string): boolean {
     if (shouldFilterChildren) {
-      var parentNotebook: Note = notebooksById.get(parent_id)
+      var parentNotebook: Notebook = notebooksById.get(parent_id)
       // Filter a note if any of its ancestor notebooks are filtered.
       while (parentNotebook !== undefined) {
         if (notebookIDsToFilter.has(parentNotebook.id)) {
@@ -71,7 +70,6 @@ export async function filterNotesByNotebookName(notes: Map<string, Note>,
         }
         parentNotebook = notebooksById.get(parentNotebook.parent_id);
       }
-      return !isIncludeFilter;
     }
     if (notebookIDsToFilter.has(parent_id)) {
       return isIncludeFilter;
@@ -79,14 +77,15 @@ export async function filterNotesByNotebookName(notes: Map<string, Note>,
     return !isIncludeFilter;
   }
 
+  var filteredNotes = new Map<string, Note>();
   notes.forEach(function(n, id) {
-    var parentNotebook: Note = notebooksById.get(n.parent_id)
+    var parentNotebook: Notebook = notebooksById.get(n.parent_id)
     if (shouldIncludeNote(id, n.parent_id)) {
-      newNotes.set(id, n);
+      filteredNotes.set(id, n);
     }
   });
 
-  return newNotes;
+  return filteredNotes;
 }
 
 // Fetches every note.
