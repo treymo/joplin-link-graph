@@ -31,11 +31,7 @@ export interface Note {
 
 // Fetch notes
 export async function getNotes(
-  selectedNote: string, maxNotes: number, maxDegree: number,
-  excludedNotebooks?: Array<Notebook>, includedNotebooks?: Array<Notebook>): Promise<Map<string, Note>> {
-  if (excludedNotebooks && includedNotebooks) {
-    throw new Error("Cannot both exclude and include specific notebooks.");
-  }
+  selectedNote: string, maxNotes: number, maxDegree: number): Promise<Map<string, Note>> {
   if(maxDegree > 0) {
     return getLinkedNotes(selectedNote, maxDegree);
   } else {
