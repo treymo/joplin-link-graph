@@ -31,7 +31,12 @@ export interface Note {
 
 // Fetch notes
 export async function getNotes(
-  selectedNote: string, maxNotes: number, maxDegree: number): Promise<Map<string, Note>> {
+  selectedNote: string, maxNotes: number, maxDegree: number,
+  excludedNotebooks?: Array<Notebook>, includedNotebooks?: Array<Notebook>): Promise<Map<string, Note>> {
+  // TODO: tests
+  if (excludedNotebooks && includedNotebooks) {
+    throw new Error("Cannot both exclude and include specific notebooks.");
+  }
   if(maxDegree > 0) {
     return getLinkedNotes(selectedNote, maxDegree);
   } else {
@@ -39,6 +44,59 @@ export async function getNotes(
   }
 }
 
+// TODO: pass in notebook names
+/**
+ * Returns a list of notes to be filtered out of the graph display.
+ */
+export async function filterNotesByNotebookName(notes: Map<string, Note>,
+  notebooks: Array<Notebook>, filteredNotebookNames: Array<string>): Promise<Map<string, Note>> {
+  // No filtering needed.
+  if (filteredNotebookNames.length < 1) return notes;
+
+  var newNotes = new Map<string, Note>();
+  const notebooksByName = new Map();
+  const notebooksById = new Map();
+  notebooks.forEach(n => notebooksByName.set(n.title, n.id))
+  notebooks.forEach(n => notebooksById.set(n.id, n))
+
+  // Get a list of valid notebook names to filter out.
+  filteredNotebookNames = filteredNotebookNames.filter(name => notebooksByName.has(name));
+
+  // Turn notebook names into IDs.
+  const notebookIDsToFilter : Set<string> = new Set(filteredNotebookNames.map(name => notebooksByName.get(name)));
+
+  // TODO: Pass this in
+  const shouldFilterChildren = await joplin.settings.value("SETTING_FILTER_CHILD_NOTEBOOKS");
+  // TODO: parameter in func
+  var isIncludeFilter = false;
+
+  function shouldIncludeNote(note_id: string, parent_id: string): boolean {
+    var parentNotebook: Note = notebooksById.get(parent_id)
+    if (shouldFilterChildren) {
+      // Filter a note if any of its ancestor notebooks are filtered.
+      while (parentNotebook !== undefined) {
+        if (notebookIDsToFilter.has(parentNotebook.id)) {
+          return isIncludeFilter ? true : false;
+        }
+        parentNotebook = notebooksById.get(parentNotebook.parent_id);
+      }
+    }
+    if (notebookIDsToFilter.has(parent_id)) {
+      return isIncludeFilter ? true : false;
+    }
+  }
+
+  notes.forEach(function(n, id) {
+    var parentNotebook: Note = notebooksById.get(n.parent_id)
+    if (shouldIncludeNote(n.id, n.parent_id)) {
+      newNotes.set(n.id, n);
+    }
+  });
+
+  return ;
+}
+
+// TODO: make private
 // Fetches every note.
 async function getAllNotes(maxNotes: number): Promise<Map<string, Note>> {
   var allNotes = []

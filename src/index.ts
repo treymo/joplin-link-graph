@@ -4,52 +4,6 @@ import { registerSettings } from './settings';
 import { MenuItemLocation, ToolbarButtonLocation } from 'api/types';
 var deepEqual = require('deep-equal')
 
-
-/**
- * Returns a list of notes to be filtered out of the graph display.
- */
-async function getFilteredNotes(notes: Map<string, joplinData.Note>,
-  notebooks: Array<joplinData.Notebook>) {
-  const filteredNotebookNames = await joplin.settings.value("SETTING_NOTEBOOK_NAMES_TO_FILTER");
-  // No filtering needed.
-  if ("" === filteredNotebookNames) return new Set();
-
-  const notebooksByName = new Map();
-  const notebooksById = new Map();
-  notebooks.forEach(n => notebooksByName.set(n.title, n.id))
-  notebooks.forEach(n => notebooksById.set(n.id, n))
-
-  // Get a list of valid notebook names to filter out.
-  var namesToFilter : Array<string> = filteredNotebookNames.split(",");
-  namesToFilter = namesToFilter.filter(name => notebooksByName.has(name));
-
-  // Turn notebook names into IDs.
-  const notebookIDsToFilter : Set<string> = new Set(namesToFilter.map(name => notebooksByName.get(name)));
-
-  const shouldFilterChildren = await joplin.settings.value("SETTING_FILTER_CHILD_NOTEBOOKS");
-  const filteredNotes = new Set<string>();
-  notes.forEach(function(n, id) {
-    var parentNotebook: joplinData.Note = notebooksById.get(n.parent_id)
-    if (shouldFilterChildren) {
-      // Filter a note if any of its ancestor notebooks are filtered.
-      while (parentNotebook !== undefined) {
-        if (notebookIDsToFilter.has(parentNotebook.id)) {
-          filteredNotes.add(id);
-          break;
-        }
-        parentNotebook = notebooksById.get(parentNotebook.parent_id);
-      }
-    } else {
-      // Only filter the immediate children of the notebook.
-      if (notebookIDsToFilter.has(parentNotebook.id)) {
-        filteredNotes.add(id);
-      }
-    }
-  });
-
-  return filteredNotes;
-}
-
 var count = 0;
 
 async function fetchData() {
@@ -59,9 +13,14 @@ async function fetchData() {
   const maxDegree = await joplin.settings.value("SETTING_MAX_SEPARATION_DEGREE");
   const maxNotes = await joplin.settings.value("SETTING_MAX_NODES")
 
-  const notes = await joplinData.getNotes(selectedNote.id, maxNotes, maxDegree);
+  var notes = await joplinData.getNotes(selectedNote.id, maxNotes, maxDegree);
   const notebooks = await joplinData.getNotebooks();
-  var noteIDsToExclude = await getFilteredNotes(notes, notebooks);
+  // TODO: include or exclude. Get note IDs for either.
+  const filteredNotebookNames = await joplin.settings.value("SETTING_NOTEBOOK_NAMES_TO_FILTER");
+  const namesToFilter : Array<string> = filteredNotebookNames.split(",");
+  console.log("notebook names to filter:");
+  console.log(namesToFilter);
+  notes = await joplinData.filterNotesByNotebookName(notes, notebooks, namesToFilter);
 
   const data = {
     "nodes": [],
@@ -72,12 +31,8 @@ async function fetchData() {
   };
 
   notes.forEach(function(note, id) {
-    if (noteIDsToExclude.has(id)) return;
-
     var links = note["links"]
     for (const link of links) {
-      if (noteIDsToExclude.has(link)) continue;
-
       var linkDestExists = notes.has(link);
       if (linkDestExists) {
         data.edges.push({
@@ -100,7 +55,6 @@ async function fetchData() {
   });
 
   notes.forEach(function(note, id) {
-    if (noteIDsToExclude.has(id)) return;
     data.nodes.push({
       "id": id,
       "title": note.title,
