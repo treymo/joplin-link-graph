@@ -15,12 +15,12 @@ async function fetchData() {
 
   var notes = await joplinData.getNotes(selectedNote.id, maxNotes, maxDegree);
   const notebooks = await joplinData.getNotebooks();
-  // TODO: include or exclude. Get note IDs for either.
   const filteredNotebookNames = await joplin.settings.value("SETTING_NOTEBOOK_NAMES_TO_FILTER");
   const namesToFilter : Array<string> = filteredNotebookNames.split(",");
-  console.log("notebook names to filter:");
-  console.log(namesToFilter);
-  notes = await joplinData.filterNotesByNotebookName(notes, notebooks, namesToFilter);
+  const shouldFilterChildren = await joplin.settings.value("SETTING_FILTER_CHILD_NOTEBOOKS");
+  const isIncludeFilter = (await joplin.settings.value("SETTING_FILTER_IS_INCLUDE_FILTER")) === "include" ? true : false;
+  notes = await joplinData.filterNotesByNotebookName(notes, notebooks, namesToFilter,
+    shouldFilterChildren, isIncludeFilter);
 
   const data = {
     "nodes": [],

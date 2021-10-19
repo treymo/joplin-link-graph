@@ -38,12 +38,25 @@ export async function registerSettings() {
       label: 'Max nodes in graph',
       description: 'Maximum number of nodes shown in the graph. Most recent nodes have priority.'
     },
+    SETTING_FILTER_IS_INCLUDE_FILTER: {
+      value: "exclude", 
+      type: SettingItemType.String,
+      isEnum: true,
+      section: sectionName,
+      public: true,
+      options: { 
+        include: "Include",
+        exclude: "Exclude",
+      },
+      label: "Should notes in the filtered notebooks be included or excluded?",
+      description: "Include will show only notebooks in the filter list and exclude will show all notebooks not in the filter list.",
+    },
     SETTING_NOTEBOOK_NAMES_TO_FILTER: {
       value: "",
       type: SettingItemType.String,
       section: sectionName,
       public: true,
-      label: "Notebooks names to filter out",
+      label: "Notebooks names to filter",
       description: "Comma separated list of Notebook names to filter.",
     },
     SETTING_FILTER_CHILD_NOTEBOOKS: {
@@ -51,8 +64,8 @@ export async function registerSettings() {
       type: SettingItemType.Bool,
       section: sectionName,
       public: true,
-      label: "Filter out child notebooks",
-      description: "Filters out notebooks that are children of the notebooks listed above.",
+      label: "Filter child notebooks",
+      description: "Filters notebooks that are children of the notebooks listed above.",
     },
     SETTING_MAX_SEPARATION_DEGREE: {
       value: DEFAULT_MAX_DEGREE,
