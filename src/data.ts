@@ -42,7 +42,8 @@ export async function getNotes(
 /**
  * Returns a filtered map of notes by notebook name.
  */
-export async function filterNotesByNotebookName(notes: Map<string, Note>,
+export async function filterNotesByNotebookName(
+  notes: Map<string, Note>,
   notebooks: Array<Notebook>,
   filteredNotebookNames: Array<string>,
   shouldFilterChildren: boolean,
@@ -50,37 +51,39 @@ export async function filterNotesByNotebookName(notes: Map<string, Note>,
   // No filtering needed.
   if (filteredNotebookNames.length < 1) return notes;
 
-  const notebooksByName = new Map<string, string>();
-  notebooks.forEach(n => notebooksByName.set(n.title, n.id))
+  const notebookIdsByName = new Map<string, string>();
+  notebooks.forEach(n => notebookIdsByName.set(n.title, n.id))
   const notebooksById = new Map<string, Notebook>();
   notebooks.forEach(n => notebooksById.set(n.id, n))
 
   // Get a list of valid notebook names to filter out.
-  filteredNotebookNames = filteredNotebookNames.filter(name => notebooksByName.has(name));
-  // Turn notebook names into a set of IDs.
-  const notebookIDsToFilter : Set<string> = new Set(filteredNotebookNames.map(name => notebooksByName.get(name)));
+  filteredNotebookNames = filteredNotebookNames.filter(name => notebookIdsByName.has(name));
 
-  function shouldIncludeNote(note_id: string, parent_id: string): boolean {
+  function shouldIncludeNote(parent_id: string): boolean {
+    var parentNotebook: Notebook = notebooksById.get(parent_id)
+    // Filter out the direct parent.
+    console.log("parent ", parentNotebook.title);
+    console.log("there", filteredNotebookNames.includes(parentNotebook.title));
+    if (filteredNotebookNames.includes(parentNotebook.title)) {
+      return isIncludeFilter;
+    }
+
+    // Filter a note if any of its ancestor notebooks are filtered.
     if (shouldFilterChildren) {
-      var parentNotebook: Notebook = notebooksById.get(parent_id)
-      // Filter a note if any of its ancestor notebooks are filtered.
       while (parentNotebook !== undefined) {
-        if (notebookIDsToFilter.has(parentNotebook.id)) {
+        console.log("here")
+        if (filteredNotebookNames.includes(parentNotebook.title)) {
           return isIncludeFilter;
         }
         parentNotebook = notebooksById.get(parentNotebook.parent_id);
       }
-    }
-    if (notebookIDsToFilter.has(parent_id)) {
-      return isIncludeFilter;
     }
     return !isIncludeFilter;
   }
 
   var filteredNotes = new Map<string, Note>();
   notes.forEach(function(n, id) {
-    var parentNotebook: Notebook = notebooksById.get(n.parent_id)
-    if (shouldIncludeNote(id, n.parent_id)) {
+    if (shouldIncludeNote(n.parent_id)) {
       filteredNotes.set(id, n);
     }
   });
