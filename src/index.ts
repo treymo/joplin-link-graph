@@ -32,7 +32,14 @@ async function fetchData() {
 
   notes.forEach(function(note, id) {
     var links = note["links"]
-    for (const link of links) {
+    for (let link of links) {
+
+      // Slice note link if link directs to an anchor  
+      var index = link.indexOf("#");
+      if(index != -1){
+        link = link.substr(0,index);
+      }
+
       var linkDestExists = notes.has(link);
       if (linkDestExists) {
         data.edges.push({
