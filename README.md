@@ -4,7 +4,7 @@ This Joplin plugin provides a UI for viewing all links between Joplin notes.
 
 **Note:** Requires Joplin 1.7.0+
 
-Combine this plugin with the Joplin Backlinks and Quicklinks for Zettelkasten-type functionality!
+Combine this plugin with the [Joplin Backlinks](https://discourse.joplinapp.org/t/automatic-backlinks-with-manual-insert-option/13632) and [Quicklinks](https://discourse.joplinapp.org/t/quick-links-plugin/14214) for Zettelkasten-type functionality!
 
 ## Basic Features
 
