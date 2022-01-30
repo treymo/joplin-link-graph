@@ -43,8 +43,8 @@ async function fetchData() {
       var linkDestExists = notes.has(link);
       if (linkDestExists) {
         data.edges.push({
-          "source": id,
-          "target": link,
+          "from": id,
+          "to": link,
           "focused": (id === selectedNote.id || link === selectedNote.id),
         });
 
@@ -64,7 +64,7 @@ async function fetchData() {
   notes.forEach(function(note, id) {
     data.nodes.push({
       "id": id,
-      "title": note.title,
+      "label": note.title,
       "focused": note.linkedToCurrentNote,
     })
   });
@@ -105,9 +105,7 @@ joplin.plugins.register({
                         <button id="redrawButton">Redraw Graph</button>
                         <p class="header">Note Graph</p>
                       </div>
-                      <div class="container">
-                        <div id="note_graph"/>
-                      </div>
+                      <div id="graph-container"></div>
         </div>
       `);
     };
