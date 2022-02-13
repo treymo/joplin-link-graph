@@ -61,7 +61,7 @@ function buildGraph(data) {
     .force("center", d3.forceCenter(width / 2, height / 2));
 
   //add zoom capabilities
-  var zoom_handler = d3.zoom().on("zoom", zoom_actions);
+  var zoom_handler = d3.zoom().scaleExtent([0.1, 10]).on("zoom", zoom_actions);
   zoom_handler(d3.select("svg"));
 
   function zoom_actions(event) {

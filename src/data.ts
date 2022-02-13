@@ -1,4 +1,4 @@
-import joplin from 'api';
+import joplin from "api";
 
 export interface Notebook {
   id: string;
@@ -7,16 +7,16 @@ export interface Notebook {
 }
 
 export async function getNotebooks(): Promise<Array<Notebook>> {
-  var allNotebooks = []
+  var allNotebooks = [];
   var page_num = 1;
   do {
-    var notebooks = await joplin.data.get(['folders'], {
-      fields: ['id', 'title', 'parent_id'],
+    var notebooks = await joplin.data.get(["folders"], {
+      fields: ["id", "title", "parent_id"],
       page: page_num,
     });
     allNotebooks.push(...notebooks.items);
     page_num++;
-  } while (notebooks.has_more)
+  } while (notebooks.has_more);
 
   return allNotebooks;
 }
@@ -25,14 +25,24 @@ export interface Note {
   id: string;
   parent_id: string;
   title: string;
-  body: string;
+  links: any[];
   linkedToCurrentNote?: boolean;
+}
+
+interface JoplinNote {
+  id: string;
+  parent_id: string;
+  title: string;
+  body: string;
 }
 
 // Fetch notes
 export async function getNotes(
-  selectedNote: string, maxNotes: number, maxDegree: number): Promise<Map<string, Note>> {
-  if(maxDegree > 0) {
+  selectedNote: string,
+  maxNotes: number,
+  maxDegree: number
+): Promise<Map<string, Note>> {
+  if (maxDegree > 0) {
     return getLinkedNotes(selectedNote, maxDegree);
   } else {
     return getAllNotes(maxNotes);
@@ -47,23 +57,24 @@ export async function filterNotesByNotebookName(
   notebooks: Array<Notebook>,
   filteredNotebookNames: Array<string>,
   shouldFilterChildren: boolean,
-  isIncludeFilter: boolean): Promise<Map<string, Note>> {
+  isIncludeFilter: boolean
+): Promise<Map<string, Note>> {
   // No filtering needed.
   if (filteredNotebookNames.length < 1) return notes;
 
   const notebookIdsByName = new Map<string, string>();
-  notebooks.forEach(n => notebookIdsByName.set(n.title, n.id))
+  notebooks.forEach((n) => notebookIdsByName.set(n.title, n.id));
   const notebooksById = new Map<string, Notebook>();
-  notebooks.forEach(n => notebooksById.set(n.id, n))
+  notebooks.forEach((n) => notebooksById.set(n.id, n));
 
   // Get a list of valid notebook names to filter out.
-  filteredNotebookNames = filteredNotebookNames.filter(name => notebookIdsByName.has(name));
+  filteredNotebookNames = filteredNotebookNames.filter((name) =>
+    notebookIdsByName.has(name)
+  );
 
   function shouldIncludeNote(parent_id: string): boolean {
-    var parentNotebook: Notebook = notebooksById.get(parent_id)
+    var parentNotebook: Notebook = notebooksById.get(parent_id);
     // Filter out the direct parent.
-    console.log("parent ", parentNotebook.title);
-    console.log("there", filteredNotebookNames.includes(parentNotebook.title));
     if (filteredNotebookNames.includes(parentNotebook.title)) {
       return isIncludeFilter;
     }
@@ -71,7 +82,6 @@ export async function filterNotesByNotebookName(
     // Filter a note if any of its ancestor notebooks are filtered.
     if (shouldFilterChildren) {
       while (parentNotebook !== undefined) {
-        console.log("here")
         if (filteredNotebookNames.includes(parentNotebook.title)) {
           return isIncludeFilter;
         }
@@ -82,7 +92,7 @@ export async function filterNotesByNotebookName(
   }
 
   var filteredNotes = new Map<string, Note>();
-  notes.forEach(function(n, id) {
+  notes.forEach(function (n, id) {
     if (shouldIncludeNote(n.parent_id)) {
       filteredNotes.set(id, n);
     }
@@ -93,35 +103,44 @@ export async function filterNotesByNotebookName(
 
 // Fetches every note.
 async function getAllNotes(maxNotes: number): Promise<Map<string, Note>> {
-  var allNotes = []
+  var allNotes = new Array<JoplinNote>();
   var page_num = 1;
   do {
     // `parent_id` is the ID of the notebook containing the note.
-    var notes = await joplin.data.get(['notes'], {
-      fields: ['id', 'parent_id', 'title', 'body'],
-      order_by: 'updated_time',
-      order_dir: 'DESC',
+    var notes = await joplin.data.get(["notes"], {
+      fields: ["id", "parent_id", "title", "body"],
+      order_by: "updated_time",
+      order_dir: "DESC",
       limit: maxNotes < 100 ? maxNotes : 100,
       page: page_num,
     });
     allNotes.push(...notes.items);
     page_num++;
-  } while (notes.has_more && allNotes.length < maxNotes)
+  } while (notes.has_more && allNotes.length < maxNotes);
 
   const noteMap = new Map();
-  for (const note of allNotes) {
-    var links = getAllLinksForNote(note.body);
-    noteMap.set(note.id, {title: note.title, parent_id: note.parent_id, links: links})
-  }
+  allNotes.map((note) => noteMap.set(note.id, buildNote(note)));
   return noteMap;
+}
+
+function buildNote(joplinNote: JoplinNote): Note {
+  const links = getAllLinksForNote(joplinNote.body);
+  return {
+    id: joplinNote.id,
+    title: joplinNote.title,
+    parent_id: joplinNote.parent_id,
+    links: links,
+  };
 }
 
 // Fetch all notes linked to a given source note, up to a maximum degree of
 // separation.
-async function getLinkedNotes(source_id:string, maxDegree:number) : Promise<Map<string, Note>> {
-
+async function getLinkedNotes(
+  source_id: string,
+  maxDegree: number
+): Promise<Map<string, Note>> {
   var pending = [];
-  var visited = [];
+  var visited = new Set();
   const noteMap = new Map();
   var degree = 0;
 
@@ -130,25 +149,19 @@ async function getLinkedNotes(source_id:string, maxDegree:number) : Promise<Map<
     // Traverse a new batch of pending note ids, storing the note data in
     // the resulting map, and stashing the newly found linked notes for the
     // next iteration.
-    const notes = await getNoteArray(pending);
-    visited.push(...pending);
+    const joplinNotes = await getNoteArray(pending);
+    pending.forEach((pendingNoteId) => visited.add(pendingNoteId));
     pending = [];
 
-    notes.forEach(note => {
+    joplinNotes.forEach((joplinNote) => {
       // store note data to be returned at the end of the traversal
-      const links = getAllLinksForNote(note.body);
-      noteMap.set(note.id, {
-        id: note.id,
-        title: note.title,
-        parent_id: note.parent_id,
-        links: links});
+      const note = buildNote(joplinNote);
+      noteMap.set(joplinNote.id, note);
 
       // stash any new links for the next iteration
-      links.forEach(link => {
-
+      note.links.forEach((link) => {
         // prevent cycles by filtering notes we've already seen.
-        // TODO this check can get expensive for massive graphs
-        if(!visited.includes(link)) {
+        if (!visited.has(link)) {
           pending.push(link);
         }
       });
@@ -158,40 +171,39 @@ async function getLinkedNotes(source_id:string, maxDegree:number) : Promise<Map<
 
     // stop whenever we've reached the maximum degree of separation, or
     // we've exhausted the adjacent nodes.
-  } while(pending.length > 0 && degree <= maxDegree);
+  } while (pending.length > 0 && degree <= maxDegree);
 
   return noteMap;
 }
 
-async function getNoteArray(ids:string[]) {
-
-  var promises = ids.map( id =>
-    joplin.data.get(['notes', id], {
-      fields: ['id', 'parent_id', 'title', 'body']
+async function getNoteArray(ids: string[]): Promise<Array<JoplinNote>> {
+  var promises = ids.map((id) =>
+    joplin.data.get(["notes", id], {
+      fields: ["id", "parent_id", "title", "body"],
     })
   );
 
   // joplin queries could fail -- make sure we catch errors.
-  const results = await Promise.all(promises.map( p => p.catch(e => e)));
+  const results = await Promise.all(promises.map((p) => p.catch((e) => e)));
 
   // remove from results any promises that errored out, returning the valid
   // subset of queries.
-  const valid = results.filter(r => !(r instanceof Error));
+  const valid = results.filter((r) => !(r instanceof Error));
   return valid;
 }
 
-function getAllLinksForNote(noteBody:string) {
+function getAllLinksForNote(noteBody: string) {
   const links = [];
   // TODO: needs to handle resource links vs note links. see 4. Tips note for
   // webclipper screenshot.
   // https://stackoverflow.com/questions/37462126/regex-match-markdown-link
-  const linkRegexp = (/\[\]|\[.*?\]\(:\/(.*?)\)/g);
-  var match = linkRegexp.exec(noteBody);
-  while (match != null) {
-    if (match[1] !== undefined) {
+  const linkRegexp = /\[\]|\[.*?\]\(:\/(.*?)\)/g;
+  var match = null;
+  do {
+    match = linkRegexp.exec(noteBody);
+    if (match != null && match[1] !== undefined) {
       links.push(match[1]);
     }
-    match = linkRegexp.exec(noteBody);
-  }
+  } while (match != null);
   return links;
 }

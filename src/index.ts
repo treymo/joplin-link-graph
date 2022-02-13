@@ -4,11 +4,8 @@ import { registerSettings } from "./settings";
 import { MenuItemLocation, ToolbarButtonLocation } from "api/types";
 var deepEqual = require("deep-equal");
 
-var count = 0;
-
 async function fetchData() {
   const selectedNote = await joplin.workspace.selectedNote();
-  const selectedFolder = await joplin.workspace.selectedFolder();
 
   const maxDegree = await joplin.settings.value(
     "SETTING_MAX_SEPARATION_DEGREE"
