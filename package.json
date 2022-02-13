@@ -17,6 +17,7 @@
     "copy-webpack-plugin": "^6.1.0",
     "fs-extra": "^9.0.1",
     "glob": "^7.1.6",
+    "glob-parent": ">=5.1.2",
     "on-build-webpack": "^0.1.0",
     "tar": "^6.0.5",
     "ts-loader": "^7.0.5",
@@ -27,6 +28,7 @@
   },
   "dependencies": {
     "d3": "^7.0.4",
-    "deep-equal": "^2.0.5"
+    "deep-equal": "^2.0.5",
+    "glob-parent": ">=5.1.2"
   }
 }
