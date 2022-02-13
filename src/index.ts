@@ -5,15 +5,11 @@ import { MenuItemLocation, ToolbarButtonLocation } from "api/types";
 var deepEqual = require("deep-equal");
 
 async function fetchData() {
-  const selectedNote = await joplin.workspace.selectedNote();
-
+  // Load settings
   const maxDegree = await joplin.settings.value(
     "SETTING_MAX_SEPARATION_DEGREE"
   );
   const maxNotes = await joplin.settings.value("SETTING_MAX_NODES");
-
-  var notes = await joplinData.getNotes(selectedNote.id, maxNotes, maxDegree);
-  const notebooks = await joplinData.getNotebooks();
   const filteredNotebookNames = await joplin.settings.value(
     "SETTING_NOTEBOOK_NAMES_TO_FILTER"
   );
@@ -26,9 +22,12 @@ async function fetchData() {
     "include"
       ? true
       : false;
-  notes = await joplinData.filterNotesByNotebookName(
-    notes,
-    notebooks,
+
+  const selectedNote = await joplin.workspace.selectedNote();
+  const notes = await joplinData.getNotes(
+    selectedNote.id,
+    maxNotes,
+    maxDegree,
     namesToFilter,
     shouldFilterChildren,
     isIncludeFilter
@@ -44,42 +43,42 @@ async function fetchData() {
   };
 
   notes.forEach(function (note, id) {
-    var links = note["links"];
-    for (let link of links) {
+    for (let link of note.links) {
       // Slice note link if link directs to an anchor
       var index = link.indexOf("#");
       if (index != -1) {
         link = link.substr(0, index);
       }
 
-      var linkDestExists = notes.has(link);
-      if (linkDestExists) {
-        data.edges.push({
-          source: id,
-          target: link,
-          focused: id === selectedNote.id || link === selectedNote.id,
-        });
+      // The destination note could have been deleted.
+      const linkDestExists = notes.has(link);
+      if (!linkDestExists) {
+        continue;
+      }
 
-        // Mark nodes that are adjacent to the currently selected note.
-        if (id === selectedNote.id) {
-          notes.get(link).linkedToCurrentNote = true;
-        } else if (link == selectedNote.id) {
-          notes.get(id).linkedToCurrentNote = true;
-        } else {
-          const l = notes.get(link);
-          l.linkedToCurrentNote = l.linkedToCurrentNote || false;
-        }
+      data.edges.push({
+        source: id,
+        target: link,
+        focused: id === selectedNote.id || link === selectedNote.id,
+      });
+
+      // Mark nodes that are adjacent to the currently selected note.
+      if (id === selectedNote.id) {
+        notes.get(link).linkedToCurrentNote = true;
+      } else if (link == selectedNote.id) {
+        notes.get(id).linkedToCurrentNote = true;
+      } else {
+        const l = notes.get(link);
+        l.linkedToCurrentNote = l.linkedToCurrentNote || false;
       }
     }
-  });
-
-  notes.forEach(function (note, id) {
     data.nodes.push({
       id: id,
       title: note.title,
       focused: note.linkedToCurrentNote,
     });
   });
+
   return data;
 }
 

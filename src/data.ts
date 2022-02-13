@@ -6,7 +6,7 @@ export interface Notebook {
   parent_id: string;
 }
 
-export async function getNotebooks(): Promise<Array<Notebook>> {
+async function getNotebooks(): Promise<Array<Notebook>> {
   var allNotebooks = [];
   var page_num = 1;
   do {
@@ -25,7 +25,7 @@ export interface Note {
   id: string;
   parent_id: string;
   title: string;
-  links: any[];
+  links: string[];
   linkedToCurrentNote?: boolean;
 }
 
@@ -40,13 +40,28 @@ interface JoplinNote {
 export async function getNotes(
   selectedNote: string,
   maxNotes: number,
-  maxDegree: number
+  maxDegree: number,
+  namesToFilter: Array<string>,
+  shouldFilterChildren: boolean,
+  isIncludeFilter: boolean
 ): Promise<Map<string, Note>> {
+  var notes = new Map<string, Note>();
   if (maxDegree > 0) {
-    return getLinkedNotes(selectedNote, maxDegree);
+    notes = await getLinkedNotes(selectedNote, maxDegree);
   } else {
-    return getAllNotes(maxNotes);
+    notes = await getAllNotes(maxNotes);
   }
+  if (namesToFilter.length > 0) {
+    const notebooks = await getNotebooks();
+    notes = await filterNotesByNotebookName(
+      notes,
+      notebooks,
+      namesToFilter,
+      shouldFilterChildren,
+      isIncludeFilter
+    );
+  }
+  return notes;
 }
 
 /**
@@ -192,8 +207,8 @@ async function getNoteArray(ids: string[]): Promise<Array<JoplinNote>> {
   return valid;
 }
 
-function getAllLinksForNote(noteBody: string) {
-  const links = [];
+function getAllLinksForNote(noteBody: string): Array<string> {
+  const links = new Array<string>();
   // TODO: needs to handle resource links vs note links. see 4. Tips note for
   // webclipper screenshot.
   // https://stackoverflow.com/questions/37462126/regex-match-markdown-link
