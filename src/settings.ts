@@ -4,6 +4,7 @@ import { SettingItemType } from "api/types";
 const DEFAULT_NODE_FONT_SIZE = 20;
 const DEFAULT_MAX_NOTES = 700;
 const DEFAULT_MAX_DEGREE = 0;
+const DEFAULT_IS_INCLUDE_BACKLINKS = false;
 
 export async function registerSettings() {
   const sectionName = "graph-ui.settings";
@@ -80,5 +81,14 @@ export async function registerSettings() {
       description:
         "Maximum number of link jumps from selected note. Zero for all notes",
     },
+    SETTING_IS_INCLUDE_BACKLINKS: {
+      value: DEFAULT_IS_INCLUDE_BACKLINKS,
+      type: SettingItemType.Bool,
+      section: sectionName,
+      public: true,
+      label: "Include note back-links for selected note",
+      description:
+        "Backlinks are links that other notes have to the selected note. Note: This setting needs degree of separation > 0.",
+    }
   });
 }

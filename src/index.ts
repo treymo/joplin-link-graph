@@ -22,6 +22,7 @@ async function fetchData() {
     "include"
       ? true
       : false;
+  const isIncludeBacklinks = await joplin.settings.value("SETTING_IS_INCLUDE_BACKLINKS")
 
   const selectedNote = await joplin.workspace.selectedNote();
   const notes = await joplinData.getNotes(
@@ -30,7 +31,8 @@ async function fetchData() {
     maxDegree,
     namesToFilter,
     shouldFilterChildren,
-    isIncludeFilter
+    isIncludeFilter,
+    isIncludeBacklinks
   );
 
   const data = {
@@ -38,6 +40,7 @@ async function fetchData() {
     edges: [],
     currentNoteID: selectedNote.id,
     nodeFontSize: await joplin.settings.value("SETTING_NODE_FONT_SIZE"),
+    isIncludeBacklinks: isIncludeBacklinks,
     nodeDistanceRatio:
       (await joplin.settings.value("SETTING_NODE_DISTANCE")) / 100.0,
   };

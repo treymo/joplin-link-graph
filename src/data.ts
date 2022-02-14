@@ -43,11 +43,12 @@ export async function getNotes(
   maxDegree: number,
   namesToFilter: Array<string>,
   shouldFilterChildren: boolean,
-  isIncludeFilter: boolean
+  isIncludeFilter: boolean,
+  isIncludeBacklinks: boolean
 ): Promise<Map<string, Note>> {
   var notes = new Map<string, Note>();
   if (maxDegree > 0) {
-    notes = await getLinkedNotes(selectedNote, maxDegree);
+    notes = await getLinkedNotes(selectedNote, maxDegree, isIncludeBacklinks);
   } else {
     notes = await getAllNotes(maxNotes);
   }
@@ -152,7 +153,8 @@ function buildNote(joplinNote: JoplinNote): Note {
 // separation.
 async function getLinkedNotes(
   source_id: string,
-  maxDegree: number
+  maxDegree: number,
+  isIncludeBacklinks: boolean
 ): Promise<Map<string, Note>> {
   var pending = [];
   var visited = new Set();
@@ -168,19 +170,24 @@ async function getLinkedNotes(
     pending.forEach((pendingNoteId) => visited.add(pendingNoteId));
     pending = [];
 
-    joplinNotes.forEach((joplinNote) => {
+    for (const joplinNote of joplinNotes) {
       // store note data to be returned at the end of the traversal
       const note = buildNote(joplinNote);
       noteMap.set(joplinNote.id, note);
 
+      const allLinks = [
+        ...note.links, // these are the forward-links
+        ...(isIncludeBacklinks ? await getAllBacklinksForNote(note.id) : []),
+      ];
+
       // stash any new links for the next iteration
-      note.links.forEach((link) => {
+      allLinks.forEach((link) => {
         // prevent cycles by filtering notes we've already seen.
         if (!visited.has(link)) {
           pending.push(link);
         }
       });
-    });
+    }
 
     degree++;
 
@@ -220,5 +227,20 @@ function getAllLinksForNote(noteBody: string): Array<string> {
       links.push(match[1]);
     }
   } while (match != null);
+  return links;
+}
+
+async function getAllBacklinksForNote(noteId: string) {
+  const links: string[] = [];
+  let pageNum = 1;
+  let response;
+  do {
+    response = await joplin.data.get(["search"], {
+      query: noteId,
+      fields: ["id"],
+      page: pageNum++,
+    });
+    links.push(...response.items.map(({ id }) => id));
+  } while (response.has_more);
   return links;
 }
