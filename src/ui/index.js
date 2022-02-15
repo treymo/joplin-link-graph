@@ -60,18 +60,22 @@ function buildGraph(data) {
     .force("nocollide", d3.forceCollide(data.nodeDistanceRatio * 200))
     .force("center", d3.forceCenter(width / 2, height / 2));
 
-  svg.append("defs").append("marker")
+  if (data.isIncludeBacklinks) {
+    svg
+      .append("defs")
+      .append("marker")
       .attr("id", "arrow")
       .attr("viewBox", "0 -5 10 10")
       .attr("refX", 20)
       .attr("refY", 0)
       .attr("markerWidth", 15)
       .attr("markerHeight", 15)
-      .attr("markerUnits","userSpaceOnUse")
+      .attr("markerUnits", "userSpaceOnUse")
       .attr("orient", "auto")
-      .attr("class","line-marker-end")
-    .append("svg:path")
+      .attr("class", "line-marker-end")
+      .append("svg:path")
       .attr("d", "M0,-5L10,0L0,5");
+  }
 
   //add zoom capabilities
   var zoom_handler = d3.zoom().scaleExtent([0.1, 10]).on("zoom", zoom_actions);
