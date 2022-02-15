@@ -22,6 +22,7 @@ interface GraphData {
   currentNoteID: string;
   nodeFontSize: number;
   nodeDistanceRatio: number;
+  isIncludeBacklinks: boolean;
 }
 
 let data: GraphData;
@@ -184,6 +185,9 @@ async function fetchData() {
     "include"
       ? true
       : false;
+  const isIncludeBacklinks = await joplin.settings.value(
+    "SETTING_IS_INCLUDE_BACKLINKS"
+  );
 
   const selectedNote = await joplin.workspace.selectedNote();
   const notes = await joplinData.getNotes(
@@ -192,7 +196,8 @@ async function fetchData() {
     maxDegree,
     namesToFilter,
     shouldFilterChildren,
-    isIncludeFilter
+    isIncludeFilter,
+    isIncludeBacklinks
   );
 
   const data: GraphData = {
@@ -202,6 +207,7 @@ async function fetchData() {
     nodeFontSize: await joplin.settings.value("SETTING_NODE_FONT_SIZE"),
     nodeDistanceRatio:
       (await joplin.settings.value("SETTING_NODE_DISTANCE")) / 100.0,
+    isIncludeBacklinks: isIncludeBacklinks,
   };
 
   notes.forEach(function (note, id) {
