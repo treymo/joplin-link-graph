@@ -25,7 +25,7 @@ export interface Note {
   id: string;
   parent_id: string;
   title: string;
-  links: string[];
+  links: Set<string>;
   linkedToCurrentNote?: boolean;
 }
 
@@ -140,7 +140,7 @@ async function getAllNotes(maxNotes: number): Promise<Map<string, Note>> {
 }
 
 function buildNote(joplinNote: JoplinNote): Note {
-  const links = getAllLinksForNote(joplinNote.body);
+  const links: Set<string> = getAllLinksForNote(joplinNote.body);
   return {
     id: joplinNote.id,
     title: joplinNote.title,
@@ -214,8 +214,8 @@ async function getNoteArray(ids: string[]): Promise<Array<JoplinNote>> {
   return valid;
 }
 
-function getAllLinksForNote(noteBody: string): Array<string> {
-  const links = new Array<string>();
+export function getAllLinksForNote(noteBody: string): Set<string> {
+  const links = new Set<string>();
   // TODO: needs to handle resource links vs note links. see 4. Tips note for
   // webclipper screenshot.
   // https://stackoverflow.com/questions/37462126/regex-match-markdown-link
@@ -224,7 +224,7 @@ function getAllLinksForNote(noteBody: string): Array<string> {
   do {
     match = linkRegexp.exec(noteBody);
     if (match != null && match[1] !== undefined) {
-      links.push(match[1]);
+      links.add(match[1]);
     }
   } while (match != null);
   return links;
