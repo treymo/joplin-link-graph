@@ -2,7 +2,7 @@ import joplin from "api";
 import * as joplinData from "./data";
 import { registerSettings } from "./settings";
 import { MenuItemLocation, ToolbarButtonLocation } from "api/types";
-var deepEqual = require("deep-equal");
+var deepEqual = require("fast-deep-equal");
 
 async function fetchData() {
   // Load settings
