@@ -56,3 +56,8 @@ line {
 .node-label {
   fill: var(--joplin-color);
 }
+
+.line-marker-end {
+  fill: var(--joplin-search-marker-background-color);
+}
+
