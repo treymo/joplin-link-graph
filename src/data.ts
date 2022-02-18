@@ -141,6 +141,7 @@ async function getAllNotes(maxNotes: number): Promise<Map<string, Note>> {
 
 function buildNote(joplinNote: JoplinNote): Note {
   const links: Set<string> = getAllLinksForNote(joplinNote.body);
+  joplinNote.body = null;
   return {
     id: joplinNote.id,
     title: joplinNote.title,

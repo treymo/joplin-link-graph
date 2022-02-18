@@ -102,40 +102,40 @@ joplin.plugins.register({
         return;
       }
 
+      const maxDegree = await joplin.settings.value(
+        "SETTING_MAX_SEPARATION_DEGREE"
+      );
       var dataChanged = false;
       // Speed up the inital load by skipping the eventName switch.
       if (typeof data === "undefined") {
         data = await fetchData();
         dataChanged = true;
       } else {
-        switch (eventName) {
-          case "noteChange":
-            // Don't update the graph is the links in this note haven't changed.
-            const selectedNote = await joplin.workspace.selectedNote();
-            var noteLinks = joplinData.getAllLinksForNote(selectedNote.body);
-            if (!deepEqual(noteLinks, prevNoteLinks)) {
-              prevNoteLinks = noteLinks;
-              dataChanged = true;
-            }
-            break;
-          case "noteSelectionChange":
-            // noteSelectionChange should just re-center the graph, no need to fetch all new data and compare.
-            const newlySelectedNote = await joplin.workspace.selectedNote();
-            data.currentNoteID = newlySelectedNote.id;
-            data.edges.forEach((edge) => {
-              const shouldHaveFocus =
-                edge.source === newlySelectedNote.id ||
-                edge.target === newlySelectedNote.id;
-              edge.focused = shouldHaveFocus;
-            });
-            data.nodes.forEach((node) => {
-              node.focused = node.id === newlySelectedNote.id;
-            });
+        if (eventName === "noteChange") {
+          // Don't update the graph is the links in this note haven't changed.
+          const selectedNote = await joplin.workspace.selectedNote();
+          var noteLinks = joplinData.getAllLinksForNote(selectedNote.body);
+          if (!deepEqual(noteLinks, prevNoteLinks)) {
+            prevNoteLinks = noteLinks;
             dataChanged = true;
-            break;
-          default:
-            data = await fetchData();
-            dataChanged = !deepEqual(data, prevData);
+          }
+        } else if (eventName === "noteSelectionChange" && maxDegree == 0) {
+          // noteSelectionChange should just re-center the graph, no need to fetch all new data and compare.
+          const newlySelectedNote = await joplin.workspace.selectedNote();
+          data.currentNoteID = newlySelectedNote.id;
+          data.edges.forEach((edge) => {
+            const shouldHaveFocus =
+              edge.source === newlySelectedNote.id ||
+              edge.target === newlySelectedNote.id;
+            edge.focused = shouldHaveFocus;
+          });
+          data.nodes.forEach((node) => {
+            node.focused = node.id === newlySelectedNote.id;
+          });
+          dataChanged = true;
+        } else {
+          data = await fetchData();
+          dataChanged = !deepEqual(data, prevData);
         }
       }
 
@@ -165,8 +165,6 @@ joplin.plugins.register({
   },
 });
 
-function updateFocus() {}
-
 async function fetchData() {
   // Load settings
   const maxDegree = await joplin.settings.value(
@@ -182,7 +180,7 @@ async function fetchData() {
   );
   const isIncludeFilter =
     (await joplin.settings.value("SETTING_FILTER_IS_INCLUDE_FILTER")) ===
-    "include"
+      "include"
       ? true
       : false;
   const isIncludeBacklinks = await joplin.settings.value(
