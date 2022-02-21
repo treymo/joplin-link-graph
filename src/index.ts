@@ -22,7 +22,7 @@ interface GraphData {
   currentNoteID: string;
   nodeFontSize: number;
   nodeDistanceRatio: number;
-  isIncludeBacklinks: boolean;
+  isShowLinkDirectionArrows: boolean;
 }
 
 let data: GraphData;
@@ -186,6 +186,9 @@ async function fetchData() {
   const isIncludeBacklinks = await joplin.settings.value(
     "SETTING_IS_INCLUDE_BACKLINKS"
   );
+  const isShowLinkDirectionArrows = await joplin.settings.value(
+    "SETTING_SHOW_LINK_DIRECTION_ARROWS"
+  );
 
   const selectedNote = await joplin.workspace.selectedNote();
   const notes = await joplinData.getNotes(
@@ -205,7 +208,7 @@ async function fetchData() {
     nodeFontSize: await joplin.settings.value("SETTING_NODE_FONT_SIZE"),
     nodeDistanceRatio:
       (await joplin.settings.value("SETTING_NODE_DISTANCE")) / 100.0,
-    isIncludeBacklinks: isIncludeBacklinks,
+    isShowLinkDirectionArrows
   };
 
   notes.forEach(function (note, id) {
