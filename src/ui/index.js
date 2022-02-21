@@ -144,6 +144,15 @@ function updateGraph(data) {
   simulation.alpha(1).alphaTarget(0).restart();
 
   function ticked() {
+    node.attr("transform", function (d) {
+      if (d.id == data.currentNoteID) {
+        // Center the current note in the svg.
+        d.x = width / 2;
+        d.y = height / 2;
+      }
+      return "translate(" + d.x + "," + d.y + ")";
+    });
+
     link
       .attr("x1", function (d) {
         return d.source.x;
@@ -157,14 +166,5 @@ function updateGraph(data) {
       .attr("y2", function (d) {
         return d.target.y;
       });
-
-    node.attr("transform", function (d) {
-      if (d.id == data.currentNoteID) {
-        // Center the current note in the svg.
-        d.x = width / 2;
-        d.y = height / 2;
-      }
-      return "translate(" + d.x + "," + d.y + ")";
-    });
   }
 }
