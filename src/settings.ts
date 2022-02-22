@@ -5,7 +5,7 @@ const DEFAULT_NODE_FONT_SIZE = 20;
 const DEFAULT_MAX_NOTES = 700;
 const DEFAULT_MAX_DEGREE = 0;
 const DEFAULT_IS_INCLUDE_BACKLINKS = false;
-const DEFAULT_SHOW_LINK_DIRECTION_ARROWS = false;
+const DEFAULT_SHOW_LINK_DIRECTION = false;
 
 export async function registerSettings() {
   const sectionName = "graph-ui.settings";
@@ -91,8 +91,8 @@ export async function registerSettings() {
       description:
         "Backlinks are links that other notes have to the selected note. Note: This setting is targeted towards selection-based graphs with degree of separation > 0.",
     },
-    SETTING_SHOW_LINK_DIRECTION_ARROWS: {
-      value: DEFAULT_SHOW_LINK_DIRECTION_ARROWS,
+    SETTING_SHOW_LINK_DIRECTION: {
+      value: DEFAULT_SHOW_LINK_DIRECTION,
       type: SettingItemType.Bool,
       section: sectionName,
       public: true,
