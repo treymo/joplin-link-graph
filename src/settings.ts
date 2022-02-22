@@ -4,7 +4,7 @@ import { SettingItemType } from "api/types";
 const DEFAULT_NODE_FONT_SIZE = 20;
 const DEFAULT_MAX_NOTES = 700;
 const DEFAULT_MAX_DEGREE = 0;
-const DEFAULT_IS_INCLUDE_BACKLINKS = false;
+const DEFAULT_INCLUDE_BACKLINKS = false;
 const DEFAULT_SHOW_LINK_DIRECTION = false;
 
 export async function registerSettings() {
@@ -82,8 +82,8 @@ export async function registerSettings() {
       description:
         "Maximum number of link jumps from selected note. Zero for all notes",
     },
-    SETTING_IS_INCLUDE_BACKLINKS: {
-      value: DEFAULT_IS_INCLUDE_BACKLINKS,
+    SETTING_INCLUDE_BACKLINKS: {
+      value: DEFAULT_INCLUDE_BACKLINKS,
       type: SettingItemType.Bool,
       section: sectionName,
       public: true,

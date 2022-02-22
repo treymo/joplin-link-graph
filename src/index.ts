@@ -183,8 +183,8 @@ async function fetchData() {
       "include"
       ? true
       : false;
-  const isIncludeBacklinks = await joplin.settings.value(
-    "SETTING_IS_INCLUDE_BACKLINKS"
+  const includeBacklinks = await joplin.settings.value(
+    "SETTING_INCLUDE_BACKLINKS"
   );
   const showLinkDirection = await joplin.settings.value(
     "SETTING_SHOW_LINK_DIRECTION"
@@ -198,7 +198,7 @@ async function fetchData() {
     namesToFilter,
     shouldFilterChildren,
     isIncludeFilter,
-    isIncludeBacklinks
+    includeBacklinks
   );
 
   const data: GraphData = {
