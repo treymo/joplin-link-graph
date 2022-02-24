@@ -40,17 +40,31 @@ function buildGraph(data) {
     .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
+  const forceLink = d3
+    .forceLink()
+    .distance(200)
+    .id(function (d) {
+      return d.id;
+    })
+
+  if (data.maxDegree > 0) {
+    // we are in selection-based graph
+    forceLink.strength((link) => {
+      const minDistance = Math.min(
+        link.source.distanceToCurrentNote,
+        link.target.distanceToCurrentNote
+      );
+      if (minDistance === 0) {
+        return 1;
+      } else if (minDistance === 1) {
+        return 0.5;
+      } else return 0.1;
+    });
+  }
+
   simulation = d3
     .forceSimulation()
-    .force(
-      "link",
-      d3
-        .forceLink()
-        .distance(200)
-        .id(function (d) {
-          return d.id;
-        })
-    )
+    .force("link", forceLink)
     .force(
       "charge",
       d3.forceManyBody().strength(function () {

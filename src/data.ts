@@ -27,6 +27,13 @@ export interface Note {
   title: string;
   links: Set<string>;
   linkedToCurrentNote?: boolean;
+  /**
+   * (Minimal) distance of this note to current/selected note in Joplin
+   * 0 => current note itself
+   * 1 => directly adjacent note
+   * x => ... and so on
+   */
+  distanceToCurrentNote?: number;
 }
 
 interface JoplinNote {
@@ -174,6 +181,7 @@ async function getLinkedNotes(
     for (const joplinNote of joplinNotes) {
       // store note data to be returned at the end of the traversal
       const note = buildNote(joplinNote);
+      note.distanceToCurrentNote = degree;
       noteMap.set(joplinNote.id, note);
 
       const allLinks = [
