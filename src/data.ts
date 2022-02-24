@@ -44,11 +44,11 @@ export async function getNotes(
   namesToFilter: Array<string>,
   shouldFilterChildren: boolean,
   isIncludeFilter: boolean,
-  isIncludeBacklinks: boolean
+  includeBacklinks: boolean
 ): Promise<Map<string, Note>> {
   var notes = new Map<string, Note>();
   if (maxDegree > 0) {
-    notes = await getLinkedNotes(selectedNote, maxDegree, isIncludeBacklinks);
+    notes = await getLinkedNotes(selectedNote, maxDegree, includeBacklinks);
   } else {
     notes = await getAllNotes(maxNotes);
   }
@@ -155,7 +155,7 @@ function buildNote(joplinNote: JoplinNote): Note {
 async function getLinkedNotes(
   source_id: string,
   maxDegree: number,
-  isIncludeBacklinks: boolean
+  includeBacklinks: boolean
 ): Promise<Map<string, Note>> {
   var pending = [];
   var visited = new Set();
@@ -178,7 +178,7 @@ async function getLinkedNotes(
 
       const allLinks = [
         ...note.links, // these are the forward-links
-        ...(isIncludeBacklinks ? await getAllBacklinksForNote(note.id) : []),
+        ...(includeBacklinks ? await getAllBacklinksForNote(note.id) : []),
       ];
 
       // stash any new links for the next iteration

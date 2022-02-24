@@ -60,7 +60,7 @@ function buildGraph(data) {
     .force("nocollide", d3.forceCollide(data.nodeDistanceRatio * 200))
     .force("center", d3.forceCenter(width / 2, height / 2));
 
-  if (data.isIncludeBacklinks) {
+  if (data.showLinkDirection) {
     svg
       .append("defs")
       .append("marker")
@@ -102,7 +102,7 @@ function updateGraph(data) {
     .append("line")
     .classed("adjacent-line", (d) => d.focused);
 
-  if (data.isIncludeBacklinks) {
+  if (data.showLinkDirection) {
     link.attr("marker-end","url(#arrow)");
   }
 
