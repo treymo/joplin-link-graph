@@ -14,6 +14,7 @@ interface Node {
   id: string;
   title: string;
   focused: boolean;
+  distanceToCurrentNote?: number;
 }
 
 interface GraphData {
@@ -23,6 +24,7 @@ interface GraphData {
   nodeFontSize: number;
   nodeDistanceRatio: number;
   showLinkDirection: boolean;
+  maxDegree: number;
 }
 
 let data: GraphData;
@@ -208,7 +210,8 @@ async function fetchData() {
     nodeFontSize: await joplin.settings.value("SETTING_NODE_FONT_SIZE"),
     nodeDistanceRatio:
       (await joplin.settings.value("SETTING_NODE_DISTANCE")) / 100.0,
-    showLinkDirection
+    showLinkDirection,
+    maxDegree
   };
 
   notes.forEach(function (note, id) {
@@ -245,6 +248,7 @@ async function fetchData() {
       id: id,
       title: note.title,
       focused: note.linkedToCurrentNote,
+      distanceToCurrentNote: note.distanceToCurrentNote
     });
   });
 
