@@ -29,27 +29,37 @@ button {
 }
 
 circle {
-  fill: var(--joplin-background-color3);
-  stroke: var(--joplin-color4);
+  fill: var(--distance-remaining-primary-color);
+  stroke: var(--distance-remaining-secondary-color);
   r: 10;
 }
 
 .adjacent-note {
-  fill: var(--joplin-color4);
+  fill: var(--distance-1-primary-color);
   r: 13;
 }
 
 .current-note {
-  fill: var(--joplin-color);
+  fill: var(--distance-0-primary-color);
+  stroke: var(--distance-0-secondary-color);
   r: 18;
 }
 
 line {
-  stroke: var(--joplin-color4);
+  stroke: var(--distance-remaining-primary-color);
+}
+
+line.distance-0 {
+  stroke: var(--distance-0-primary-color);
+  stroke-width: 3px;
+}
+
+line.distance-1 {
+  stroke: var(--distance-1-primary-color);
 }
 
 .adjacent-line {
-  stroke: var(--joplin-color);
+  stroke: var(--distance-0-primary-color);
   stroke-width: 3px;
 }
 
@@ -57,7 +67,12 @@ line {
   fill: var(--joplin-color);
 }
 
-.line-marker-end {
-  fill: var(--joplin-search-marker-background-color);
+#note_graph {
+  /* distance colors for selection-based graph */
+  --distance-0-primary-color: var(--joplin-color);
+  --distance-0-secondary-color: var(--joplin-color4);
+  --distance-1-primary-color: var(--joplin-color4);
+  --distance-1-secondary-color: var(--joplin-color);
+  --distance-remaining-primary-color: var(--joplin-background-color-hover3);
+  --distance-remaining-secondary-color: var(--joplin-color4);
 }
-
