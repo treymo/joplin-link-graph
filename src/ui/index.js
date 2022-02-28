@@ -140,9 +140,13 @@ function updateGraph(data) {
   // provide distance classes for links
   if (data.graphIsSelectionBased) {
     link.attr("class", function (d) {
-      return [...this.classList, `distance-${minimalDistanceOfLink(d)}`].join(
-        " "
-      );
+      const linkIsInward =
+        d.sourceDistanceToCurrentNode > d.targetDistanceToCurrentNode;
+      return [
+        ...this.classList,
+        `distance-${minimalDistanceOfLink(d)}`,
+        ...(linkIsInward ? ["inward-link"] : []),
+      ].join(" ");
     });
   }
 

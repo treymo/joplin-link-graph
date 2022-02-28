@@ -84,3 +84,10 @@ line.distance-1 {
 #note_graph.mode-selection-based-graph circle:not(.distance-0):not(.distance-1):not(.distance-2) {
   stroke: unset;
 }
+
+/*
+ * Mark links which are directed inwards/towards selected note
+ */
+#note_graph.mode-selection-based-graph .inward-link {
+  stroke-dasharray: 3;
+}
