@@ -76,3 +76,11 @@ line.distance-1 {
   --distance-remaining-primary-color: var(--joplin-background-color-hover3);
   --distance-remaining-secondary-color: var(--joplin-color4);
 }
+
+/*
+ * Make nodes far away from selected nodes less apparent:
+ * Remove stroke for circles > distance-2 in selection-based graphs
+ */
+#note_graph.mode-selection-based-graph circle:not(.distance-0):not(.distance-1):not(.distance-2) {
+  stroke: unset;
+}
