@@ -7,6 +7,8 @@ var deepEqual = require("fast-deep-equal");
 interface Edge {
   source: string;
   target: string;
+  sourceDistanceToCurrentNode?: number;
+  targetDistanceToCurrentNode?: number;
   focused: boolean;
 }
 
@@ -14,7 +16,7 @@ interface Node {
   id: string;
   title: string;
   focused: boolean;
-  distanceToCurrentNote?: number;
+  distanceToCurrentNode?: number;
 }
 
 interface GraphData {
@@ -24,7 +26,8 @@ interface GraphData {
   nodeFontSize: number;
   nodeDistanceRatio: number;
   showLinkDirection: boolean;
-  maxDegree: number;
+  // maxDegree > 0
+  graphIsSelectionBased: boolean;
 }
 
 let data: GraphData;
@@ -211,7 +214,7 @@ async function fetchData() {
     nodeDistanceRatio:
       (await joplin.settings.value("SETTING_NODE_DISTANCE")) / 100.0,
     showLinkDirection,
-    maxDegree
+    graphIsSelectionBased: maxDegree > 0
   };
 
   notes.forEach(function (note, id) {
@@ -231,6 +234,8 @@ async function fetchData() {
       data.edges.push({
         source: id,
         target: link,
+        sourceDistanceToCurrentNode: notes.get(id).distanceToCurrentNote,
+        targetDistanceToCurrentNode: notes.get(link).distanceToCurrentNote,
         focused: id === selectedNote.id || link === selectedNote.id,
       });
 
@@ -248,7 +253,7 @@ async function fetchData() {
       id: id,
       title: note.title,
       focused: note.linkedToCurrentNote,
-      distanceToCurrentNote: note.distanceToCurrentNote
+      distanceToCurrentNode: note.distanceToCurrentNote
     });
   });
 
