@@ -59,11 +59,14 @@ function buildGraph(data) {
   width = window.innerWidth;
   height = window.innerHeight;
 
-  if (data.graphIsSelectionBased) {
+  if (data.graphIsSelectionBased)
     document
       .querySelector("#note_graph")
       .classList.add("mode-selection-based-graph");
-  }
+  else
+    document
+      .querySelector("#note_graph")
+      .classList.remove("mode-selection-based-graph");
 
   d3.select("#note_graph > svg").remove();
   svg = d3
