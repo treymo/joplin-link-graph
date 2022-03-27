@@ -67,6 +67,19 @@ line.distance-1 {
   fill: var(--joplin-color);
 }
 
+.hovered-node {
+  fill: var(--joplin-color-error) !important;
+  stroke: unset !important;
+}
+
+.hovered-node-label {
+  fill: var(--joplin-color-error2) !important;
+}
+
+.hovered-link {
+  stroke: var(--joplin-color-error2) !important;
+}
+
 #note_graph {
   /* distance colors for selection-based graph */
   --distance-0-primary-color: var(--joplin-color);

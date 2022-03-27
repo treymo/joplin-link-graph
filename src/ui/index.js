@@ -20,9 +20,14 @@ function update() {
 }
 
 function addMarkerEndDef(defs, distance) {
+  const style = `var(--distance-${distance}-primary-color, var(--distance-remaining-primary-color))`;
+  _addMarkerEndDef(defs, distance, style);
+}
+
+function _addMarkerEndDef(defs, name, style) {
   defs
     .append("marker")
-    .attr("id", `line-marker-end-${distance}`)
+    .attr("id", `line-marker-end-${name}`)
     .attr("viewBox", "0 -5 10 10")
     .attr("refX", 20)
     .attr("refY", 0)
@@ -30,7 +35,7 @@ function addMarkerEndDef(defs, distance) {
     .attr("markerHeight", 15)
     .attr("markerUnits", "userSpaceOnUse")
     .attr("orient", "auto")
-    .style("fill", `var(--distance-${distance}-primary-color, var(--distance-remaining-primary-color))`)
+    .style("fill", style)
     .append("svg:path")
     .attr("d", "M0,-5L10,0L0,5");
 }
@@ -110,6 +115,8 @@ function buildGraph(data) {
     }
     // marker, if whole graph is shown
     addMarkerEndDef(defs, "default");
+    // on hover marker
+    _addMarkerEndDef(defs, "hovered-link", "var(--joplin-color-error2");
   }
 
   //add zoom capabilities
@@ -135,7 +142,16 @@ function updateGraph(data) {
     .data(data.edges)
     .enter()
     .append("line")
-    .classed("adjacent-line", (d) => d.focused);
+    .classed("adjacent-line", (d) => d.focused)
+    .attr("id", function (d) {
+      return domlinkId(d.source, d.target);
+    })
+    .on("mouseover", function (_ev, d) {
+      handleLinkHover(this, d, true);
+    })
+    .on("mouseout", function (_ev, d) {
+      handleLinkHover(this, d, false);
+    });
 
   // provide distance classes for links
   if (data.graphIsSelectionBased) {
@@ -150,13 +166,72 @@ function updateGraph(data) {
     });
   }
 
-  if (data.showLinkDirection) {
-    link.attr("marker-end", (d) => {
-      if (data.graphIsSelectionBased) {
-        const minDistance = minimalDistanceOfLink(d);
-        return `url(#line-marker-end-${minDistance})`;
-      } else return `url(#line-marker-end-default)`;
+  configureDistanceMarkerEnd(link);
+
+  function domNodeId(nodeId, withSharp) {
+    // dom id needs to start with [a-zA-Z], hence we prefix with "id-"
+    return `${withSharp ? "#" : ""}id-${nodeId}`;
+  }
+
+  function domlinkId(sourceNodeId, targetNodeId, withSharp) {
+    return `${withSharp ? "#" : ""}id-${sourceNodeId}-to-id-${targetNodeId}`;
+  }
+
+  function domNodeLabelId(nodeId, withSharp) {
+    return `${withSharp ? "#" : ""}id-label-${nodeId}`;
+  }
+
+  function handleLinkHover(linkSelector, linkData, isEntered) {
+    // link hover will also trigger source and target node as well as labels hover
+
+    // lines
+    linkSelector = d3.select(linkSelector);
+    linkSelector.classed("hovered-link", isEntered);
+    if (isEntered)
+      linkSelector.attr("marker-end", "url(#line-marker-end-hovered-link)");
+    else configureDistanceMarkerEnd(linkSelector);
+
+    // nodes
+    // at this point d.source/targets holds *reference* to node data
+    d3.select(domNodeId(linkData.source.id, true)).classed(
+      "hovered-node",
+      isEntered
+    );
+    d3.select(domNodeId(linkData.target.id, true)).classed(
+      "hovered-node",
+      isEntered
+    );
+
+    // node labels
+    d3.select(domNodeLabelId(linkData.source.id, true)).classed(
+      "hovered-node-label",
+      isEntered
+    );
+    d3.select(domNodeLabelId(linkData.target.id, true)).classed(
+      "hovered-node-label",
+      isEntered
+    );
+  }
+
+  function handleNodeHover(nodeId, isEntered) {
+    // node hover delegates to handleLinkHover
+    // for all incoming and outcoming links
+    d3.selectAll(
+      `line[id^=id-${nodeId}-to-id-],line[id$=-to-id-${nodeId}]`
+    ).each(function (d, _i) {
+      handleLinkHover(this, d, isEntered);
     });
+  }
+
+  function configureDistanceMarkerEnd(link) {
+    if (data.showLinkDirection) {
+      link.attr("marker-end", (d) => {
+        if (data.graphIsSelectionBased) {
+          const minDistance = minimalDistanceOfLink(d);
+          return `url(#line-marker-end-${minDistance})`;
+        } else return `url(#line-marker-end-default)`;
+      });
+    }
   }
 
   // Draw nodes.
@@ -171,6 +246,9 @@ function updateGraph(data) {
   const circle = node.append("circle");
 
   circle
+    .attr("id", function (d) {
+      return domNodeId(d.id, false);
+    })
     .classed("current-note", (d) => d.id === data.currentNoteID)
     .classed("adjacent-note", (d) => d.focused)
     .on("click", function (_, i) {
@@ -178,6 +256,12 @@ function updateGraph(data) {
         name: "navigateTo",
         id: i.id,
       });
+    })
+    .on("mouseover", function (_evN, dN) {
+      handleNodeHover(dN.id, true);
+    })
+    .on("mouseout", function (_evN, dN) {
+      handleNodeHover(dN.id, false);
     });
 
   // provide distance classes for circles
@@ -193,6 +277,9 @@ function updateGraph(data) {
 
   nodeLabel
     .attr("class", "node-label")
+    .attr("id", function (d) {
+      return domNodeLabelId(d.id, false);
+    })
     .attr("font-size", data.nodeFontSize + "px")
     .text(function (d) {
       return d.title;
