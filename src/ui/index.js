@@ -119,7 +119,7 @@ function buildGraph(data) {
     // marker, if whole graph is shown
     addMarkerEndDef(defs, "default");
     // on hover marker
-    _addMarkerEndDef(defs, "hovered-link", "var(--joplin-color-error2");
+    _addMarkerEndDef(defs, "hovered-link", "var(--hover-secondary-color");
   }
 
   //add zoom capabilities

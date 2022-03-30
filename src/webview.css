@@ -56,16 +56,16 @@ line {
 }
 
 .hovered-node {
-  fill: var(--joplin-color-error) !important;
+  fill: var(--hover-primary-color) !important;
   stroke: unset !important;
 }
 
 .hovered-node-label {
-  fill: var(--joplin-color-error2) !important;
+  fill: var(--hover-secondary-color) !important;
 }
 
 .hovered-link {
-  stroke: var(--joplin-color-error2) !important;
+  stroke: var(--hover-secondary-color) !important;
 }
 
 #note_graph {
@@ -76,6 +76,9 @@ line {
   --distance-1-secondary-color: var(--joplin-color);
   --distance-remaining-primary-color: var(--joplin-background-color-hover3);
   --distance-remaining-secondary-color: var(--joplin-color4);
+
+  --hover-primary-color: #93f500;
+  --hover-secondary-color: var(--joplin-color-correct);
 }
 
 /*
