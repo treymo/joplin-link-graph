@@ -29,8 +29,6 @@ button {
 }
 
 circle {
-  fill: var(--distance-remaining-primary-color);
-  stroke: var(--distance-remaining-secondary-color);
   r: 10;
 }
 
@@ -41,21 +39,11 @@ circle {
 
 .current-note {
   fill: var(--distance-0-primary-color);
-  stroke: var(--distance-0-secondary-color);
   r: 18;
 }
 
 line {
   stroke: var(--distance-remaining-primary-color);
-}
-
-line.distance-0 {
-  stroke: var(--distance-0-primary-color);
-  stroke-width: 3px;
-}
-
-line.distance-1 {
-  stroke: var(--distance-1-primary-color);
 }
 
 .adjacent-line {
@@ -67,6 +55,19 @@ line.distance-1 {
   fill: var(--joplin-color);
 }
 
+.hovered-node {
+  fill: var(--hover-primary-color) !important;
+  stroke: unset !important;
+}
+
+.hovered-node-label {
+  fill: var(--hover-secondary-color) !important;
+}
+
+.hovered-link {
+  stroke: var(--hover-secondary-color) !important;
+}
+
 #note_graph {
   /* distance colors for selection-based graph */
   --distance-0-primary-color: var(--joplin-color);
@@ -75,19 +76,83 @@ line.distance-1 {
   --distance-1-secondary-color: var(--joplin-color);
   --distance-remaining-primary-color: var(--joplin-background-color-hover3);
   --distance-remaining-secondary-color: var(--joplin-color4);
+
+  --hover-primary-color: #93f500;
+  --hover-secondary-color: var(--joplin-color-correct);
 }
 
 /*
- * Make nodes far away from selected nodes less apparent:
- * Remove stroke for circles > distance-2 in selection-based graphs
+ * WHOLE GRAPH MODE [START]
  */
+
+:not(#note_graph.mode-selection-based-graph) circle:not(.current-note):not(.adjacent-note) {
+  stroke: var(--distance-remaining-secondary-color);
+  stroke-width: 2;
+  fill: var(--distance-remaining-primary-color);
+}
+
+/*
+ * WHOLE GRAPH MODE [END]
+ */
+
+/*
+ * DISTANCE-BASED GRAPH MODE [START]
+ */
+
+#note_graph {
+    /* distance colors for selection-based graph */
+    --distance-0-primary-color: var(--joplin-color);
+    --distance-0-secondary-color: var(--joplin-color4);
+    --distance-1-primary-color: var(--joplin-color4);
+    --distance-1-secondary-color: var(--joplin-color);
+    --distance-remaining-primary-color: var(--joplin-background-color-hover3);
+    --distance-remaining-secondary-color: var(--joplin-color4);
+    --distance-remaining-label-color: var(--joplin-color-faded);
+}
+
+#note_graph.mode-selection-based-graph line.distance-0 {
+  stroke: var(--distance-0-primary-color);
+  stroke-width: 3px;
+}
+
+#note_graph.mode-selection-based-graph line.distance-1 {
+  stroke: var(--distance-1-primary-color);
+}
+
+#note_graph.mode-selection-based-graph circle.distance-2 {
+  stroke: var(--distance-remaining-secondary-color);
+  stroke-width: 2;
+}
+
 #note_graph.mode-selection-based-graph circle:not(.distance-0):not(.distance-1):not(.distance-2) {
+  /*
+   * Make nodes far away from selected nodes less apparent:
+   * Remove stroke for circles > distance-2 in selection-based graphs
+   */
   stroke: unset;
+  fill: var(--distance-remaining-primary-color);
 }
 
-/*
- * Mark links which are directed inwards/towards selected note
- */
 #note_graph.mode-selection-based-graph .inward-link {
+  /* Mark links which are directed inwards/towards selected note */
   stroke-dasharray: 3;
 }
+
+#note_graph.mode-selection-based-graph text.node-label.distance-0 {
+  font-size: 150%;
+  font-weight: bold;
+}
+
+#note_graph.mode-selection-based-graph text.node-label.distance-1 {
+  font-size: 125%;
+  fill: var(--distance-1-primary-color);
+}
+
+#note_graph.mode-selection-based-graph text.node-label:not(.distance-0):not(.distance-1):not(.distance-2) {
+  font-size: 80%;
+  fill: var(--distance-remaining-label-color);
+}
+
+/*
+ * DISTANCE-BASED GRAPH MODE [END]
+ */
