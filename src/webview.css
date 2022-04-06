@@ -32,6 +32,27 @@ circle {
   r: 10;
 }
 
+.tooltip {
+  position: absolute;
+  /*transform: translateX(-50%); */
+  margin-top: 10px;
+  display: flex;
+  column-gap: 5px;
+  row-gap: 3px;
+  flex-wrap: wrap;
+  flex-direction: row;
+}
+
+.tooltip.hidden {
+  display: none;
+}
+
+.tooltip .node-hover-tag {
+   background-color: var(--joplin-background-color-hover3); 
+   border-radius: 100px;
+   padding: 5px;
+}
+
 .adjacent-note {
   fill: var(--distance-1-primary-color);
   r: 13;
@@ -55,17 +76,21 @@ line {
   fill: var(--joplin-color);
 }
 
-.hovered-node {
+line.adjacent-to-hovered {
+  stroke: var(--hover-secondary-color) !important;
+}
+
+circle.adjacent-to-hovered {
   fill: var(--hover-primary-color) !important;
   stroke: unset !important;
 }
 
-.hovered-node-label {
-  fill: var(--hover-secondary-color) !important;
+circle.hovered {
+  filter: brightness(50%);
 }
 
-.hovered-link {
-  stroke: var(--hover-secondary-color) !important;
+text.adjacent-to-hovered {
+  fill: var(--hover-secondary-color) !important;
 }
 
 #note_graph {
