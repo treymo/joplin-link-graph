@@ -77,7 +77,7 @@ export async function registerSettings() {
       type: SettingItemType.Int,
       minimum: 0,
       section: sectionName,
-      public: true,
+      public: false,
       label: "Max degree of separation",
       description:
         "Maximum number of link jumps from selected note. Zero for all notes",

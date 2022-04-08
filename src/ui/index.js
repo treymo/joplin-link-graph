@@ -1,4 +1,5 @@
 import * as d3 from "d3";
+import * as userInput from "./user-input.js"
 
 function poll() {
   webviewApi.postMessage({ name: "poll" }).then((event) => {
@@ -51,9 +52,27 @@ function minimalDistanceOfLink(link) {
   );
 }
 
-document.getElementById("redrawButton").addEventListener("click", update);
+function setMaxDistanceSetting(newVal) {
+  // will automically trigger ui update of graph
+  return webviewApi.postMessage({
+    name: "set_setting",
+    key: "SETTING_MAX_SEPARATION_DEGREE",
+    value: newVal,
+  });
+}
 
-update();
+function getMaxDistanceSetting() {
+  return webviewApi.postMessage({
+    name: "get_setting",
+    key: "SETTING_MAX_SEPARATION_DEGREE",
+  });
+}
+
+getMaxDistanceSetting().then((v) => {
+  // todo: shorten up, when top-level await available
+  userInput.init(v, setMaxDistanceSetting, update);
+  update();
+});
 
 var simulation, svg;
 var width, height;
@@ -226,7 +245,7 @@ function updateGraph(data) {
     );
   }
 
-  async function handleNodeHover(nodeSelector, nodeId, isEntered) {
+  function handleNodeHover(nodeSelector, nodeId, isEntered) {
     d3.select(nodeSelector).classed("hovered", isEntered);
     // node hover delegates to handleLinkHover
     // for all incoming and outcoming links
@@ -235,7 +254,7 @@ function updateGraph(data) {
     ).each(function (d, _i) {
       handleLinkHover(this, d, isEntered);
     });
-    await showNodeTooltip(nodeSelector, nodeId, isEntered);
+    return showNodeTooltip(nodeSelector, nodeId, isEntered);
   }
 
   async function showNodeTooltip(nodeSelector, nodeId, isEntered) {

@@ -3,6 +3,24 @@
   background-color: var(--joplin-background-color) !important;
 }
 
+.graph-content > .container {
+  /* anchor the inline settings container */
+  position:relative;
+} 
+
+#user-input-container {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  align-items: center;
+  column-gap: 5px;
+}
+
+#user-input-container label, #user-input-container output {
+  user-select: none;
+}
+
 .header-area {
   width: 100%
 }
