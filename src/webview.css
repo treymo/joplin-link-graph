@@ -182,17 +182,21 @@ text.adjacent-to-hovered {
 }
 
 #note_graph.mode-selection-based-graph text.node-label.distance-0 {
-  font-size: 150%;
+  font-size: 20px;
   font-weight: bold;
 }
 
 #note_graph.mode-selection-based-graph text.node-label.distance-1 {
-  font-size: 125%;
+  font-size: 18px;
   fill: var(--distance-1-primary-color);
 }
 
+#note_graph.mode-selection-based-graph text.node-label.distance-2 {
+  font-size: 16px;
+}
+
 #note_graph.mode-selection-based-graph text.node-label:not(.distance-0):not(.distance-1):not(.distance-2) {
-  font-size: 80%;
+  font-size: 14px;
   fill: var(--distance-remaining-label-color);
 }
 
