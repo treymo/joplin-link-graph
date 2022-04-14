@@ -19,6 +19,10 @@ function update() {
   });
 }
 
+function getNoteTags(noteId) {
+  return webviewApi.postMessage({ name: "get_note_tags", id: noteId });
+}
+
 function addMarkerEndDef(defs, distance) {
   const style = `var(--distance-${distance}-primary-color, var(--distance-remaining-primary-color))`;
   _addMarkerEndDef(defs, distance, style);
@@ -53,11 +57,17 @@ update();
 
 var simulation, svg;
 var width, height;
+var tooltip = d3
+  .select("#joplin-plugin-content")
+  .append("div")
+  .classed("tooltip", true)
+  .classed("hidden", true);
 
 function buildGraph(data) {
   var margin = { top: 10, right: 10, bottom: 10, left: 10 };
   width = window.innerWidth;
   height = window.innerHeight;
+  tooltip.classed("hidden", true); // ensure proper popup reset
 
   if (data.graphIsSelectionBased)
     document
@@ -119,7 +129,7 @@ function buildGraph(data) {
     // marker, if whole graph is shown
     addMarkerEndDef(defs, "default");
     // on hover marker
-    _addMarkerEndDef(defs, "hovered-link", "var(--hover-secondary-color");
+    _addMarkerEndDef(defs, "adjacent-to-hovered", "var(--hover-secondary-color");
   }
 
   //add zoom capabilities
@@ -185,38 +195,39 @@ function updateGraph(data) {
   }
 
   function handleLinkHover(linkSelector, linkData, isEntered) {
+    d3.select(linkSelector).classed("hovered", isEntered);
     // link hover will also trigger source and target node as well as labels hover
-
     // lines
     linkSelector = d3.select(linkSelector);
-    linkSelector.classed("hovered-link", isEntered);
+    linkSelector.classed("adjacent-to-hovered", isEntered);
     if (isEntered)
-      linkSelector.attr("marker-end", "url(#line-marker-end-hovered-link)");
+      linkSelector.attr("marker-end", "url(#line-marker-end-adjacent-to-hovered)");
     else configureDistanceMarkerEnd(linkSelector);
 
     // nodes
     // at this point d.source/targets holds *reference* to node data
     d3.select(domNodeId(linkData.source.id, true)).classed(
-      "hovered-node",
+      "adjacent-to-hovered",
       isEntered
     );
     d3.select(domNodeId(linkData.target.id, true)).classed(
-      "hovered-node",
+      "adjacent-to-hovered",
       isEntered
     );
 
     // node labels
     d3.select(domNodeLabelId(linkData.source.id, true)).classed(
-      "hovered-node-label",
+      "adjacent-to-hovered",
       isEntered
     );
     d3.select(domNodeLabelId(linkData.target.id, true)).classed(
-      "hovered-node-label",
+      "adjacent-to-hovered",
       isEntered
     );
   }
 
-  function handleNodeHover(nodeId, isEntered) {
+  async function handleNodeHover(nodeSelector, nodeId, isEntered) {
+    d3.select(nodeSelector).classed("hovered", isEntered);
     // node hover delegates to handleLinkHover
     // for all incoming and outcoming links
     d3.selectAll(
@@ -224,6 +235,40 @@ function updateGraph(data) {
     ).each(function (d, _i) {
       handleLinkHover(this, d, isEntered);
     });
+    await showNodeTooltip(nodeSelector, nodeId, isEntered);
+  }
+
+  async function showNodeTooltip(nodeSelector, nodeId, isEntered) {
+    if (!isEntered) {
+      tooltip.classed("hidden", true);
+      return;
+    }
+    const hoveredBefore = d3.select("circle.hovered").node();
+    const tags = await getNoteTags(nodeId);
+    const hoveredAfter = d3.select("circle.hovered").node();
+    // If we hovered something different in the meanwhile, don't show tooltip
+    if (hoveredAfter !== hoveredBefore) return;
+    if (tags.length === 0) return;
+    const rect = d3.select(nodeSelector).node().getBoundingClientRect();
+    tooltip.classed("hidden", false);
+    tooltip.html(
+      tags
+        .map(
+          ({ id, title }) =>
+            `<div data-tag-id="${id}" class="node-hover-tag">${title}</div>`
+        )
+        .join(" ")
+    );
+    // center tooltip text at bottom of circle
+    // (Note: CSS tranform translate does not work with flex:wrap)
+    const leftPos =
+      window.pageXOffset +
+      rect.x +
+      rect.width / 2 -
+      tooltip.node().getBoundingClientRect().width / 2;
+    tooltip
+      .style("left", `${leftPos >= 0 ? leftPos : 0}px`)
+      .style("top", `${window.pageYOffset + rect.y + rect.height}px`);
   }
 
   function configureDistanceMarkerEnd(link) {
@@ -261,10 +306,10 @@ function updateGraph(data) {
       });
     })
     .on("mouseover", function (_evN, dN) {
-      handleNodeHover(dN.id, true);
+      handleNodeHover(this, dN.id, true);
     })
     .on("mouseout", function (_evN, dN) {
-      handleNodeHover(dN.id, false);
+      handleNodeHover(this, dN.id, false);
     });
 
   // provide distance classes for circles

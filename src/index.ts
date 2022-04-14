@@ -89,16 +89,20 @@ joplin.plugins.register({
     await panels.addScript(view, "./ui/index.js");
 
     panels.onMessage(view, async (message: any) => {
-      if (message.name === "poll") {
-        let p = new Promise((resolve) => {
-          pollCb = resolve;
-        });
-        notifyUI();
-        return p;
-      } else if (message.name === "update") {
-        return { name: "update", data: data };
-      } else if (message.name === "navigateTo") {
-        joplin.commands.execute("openNote", message.id);
+      switch (message.name) {
+        case "poll":
+          let p = new Promise((resolve) => {
+            pollCb = resolve;
+          });
+          notifyUI();
+          return p;
+        case "update":
+          return { name: "update", data: data };
+        case "navigateTo":
+          joplin.commands.execute("openNote", message.id);
+          break;
+        case "get_note_tags":
+          return await joplinData.getNoteTags(message.id);
       }
     });
 
