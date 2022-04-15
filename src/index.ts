@@ -26,8 +26,7 @@ interface GraphData {
   nodeFontSize: number;
   nodeDistanceRatio: number;
   showLinkDirection: boolean;
-  // maxDegree > 0
-  graphIsSelectionBased: boolean;
+  graphIsSelectionBased: boolean; // maxDegree > 0
 }
 
 let data: GraphData;
@@ -54,6 +53,7 @@ joplin.plugins.register({
                         <p class="header">Note Graph</p>
                       </div>
                       <div class="container">
+                        <div id="user-input-container"></div>
                         <div id="note_graph"/>
                       </div>
         </div>
@@ -88,7 +88,7 @@ joplin.plugins.register({
     await panels.addScript(view, "./webview.css");
     await panels.addScript(view, "./ui/index.js");
 
-    panels.onMessage(view, async (message: any) => {
+    panels.onMessage(view, (message: any) => {
       switch (message.name) {
         case "poll":
           let p = new Promise((resolve) => {
@@ -102,7 +102,11 @@ joplin.plugins.register({
           joplin.commands.execute("openNote", message.id);
           break;
         case "get_note_tags":
-          return await joplinData.getNoteTags(message.id);
+          return joplinData.getNoteTags(message.id);
+        case "set_setting":
+          return joplin.settings.setValue(message.key, message.value);
+        case "get_setting":
+          return joplin.settings.value(message.key);
       }
     });
 
