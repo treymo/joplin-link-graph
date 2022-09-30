@@ -46,7 +46,6 @@ interface JoplinNote {
 type NoteId = string
 type NotebookId = string
 
-// Fetch notes
 export async function getNotes(
   selectedNote: NoteId,
   maxNotes: number,
@@ -56,70 +55,104 @@ export async function getNotes(
   isIncludeFilter: boolean,
   includeBacklinks: boolean
 ): Promise<Map<NoteId, Note>> {
-  var notes = new Map<NoteId, Note>();
-  if (maxDegree > 0) {
-    notes = await getLinkedNotes(selectedNote, maxDegree, includeBacklinks);
-  } else {
-    notes = await getAllNotes(maxNotes);
+  const cache =
+    namesToFilter.length > 0
+      ? createNotebookCache(await getNotebooks())
+      : emptyNotebookCache();
+  const filter = {
+    shouldFilterChildren,
+    isIncludeFilter,
+    filteredNotebookNames: namesToFilter,
+  };
+  return maxDegree > 0
+    ? await getLinkedNotes(
+        selectedNote,
+        maxDegree,
+        includeBacklinks,
+        cache,
+        filter
+      )
+    : filterNotesByNotebookName(cache, filter, await getAllNotes(maxNotes));
+}
+
+type NotebookFilter = {
+  filteredNotebookNames: Array<string>,
+  shouldFilterChildren: boolean,
+  isIncludeFilter: boolean,
+}
+
+type NotebookCache = {
+  notebookIdsByName: Map<string, NoteId>;
+  notebooksById: Map<NotebookId, Notebook>;
+};
+
+function emptyNotebookCache(): NotebookCache {
+  return {
+    notebookIdsByName: new Map(),
+    notebooksById: new Map(),
+  };
+}
+
+function shouldIncludeNotebook(
+  id: NotebookId,
+  {
+    filteredNotebookNames,
+    isIncludeFilter,
+    shouldFilterChildren,
+  }: NotebookFilter,
+  { notebooksById }: NotebookCache
+): boolean {
+  let parentNotebook: Notebook = notebooksById.get(id);
+  // Filter out the direct parent.
+  if (filteredNotebookNames.includes(parentNotebook.title)) {
+    return isIncludeFilter;
   }
-  if (namesToFilter.length > 0) {
-    const notebooks = await getNotebooks();
-    notes = await filterNotesByNotebookName(
-      notes,
-      notebooks,
-      namesToFilter,
-      shouldFilterChildren,
-      isIncludeFilter
-    );
+
+  // Filter a note if any of its ancestor notebooks are filtered.
+  if (shouldFilterChildren) {
+    while (parentNotebook !== undefined) {
+      if (filteredNotebookNames.includes(parentNotebook.title)) {
+        return isIncludeFilter;
+      }
+      parentNotebook = notebooksById.get(parentNotebook.parent_id);
+    }
   }
-  return notes;
+  return !isIncludeFilter;
+}
+
+function createNotebookCache(notebooks: Array<Notebook>): NotebookCache {
+  const cache = {
+    notebookIdsByName: new Map<string, NoteId>(),
+    notebooksById: new Map<NotebookId, Notebook>(),
+  };
+  notebooks.forEach((n) => cache.notebookIdsByName.set(n.title, n.id));
+  notebooks.forEach((n) => cache.notebooksById.set(n.id, n));
+  return cache;
 }
 
 /**
  * Returns a filtered map of notes by notebook name.
  */
-export async function filterNotesByNotebookName(
-  notes: Map<NoteId, Note>,
-  notebooks: Array<Notebook>,
-  filteredNotebookNames: Array<string>,
-  shouldFilterChildren: boolean,
-  isIncludeFilter: boolean
-): Promise<Map<NoteId, Note>> {
+export function filterNotesByNotebookName(
+  cache: NotebookCache,
+  filter: NotebookFilter,
+  notes: Map<NoteId, Note>
+) {
   // No filtering needed.
-  if (filteredNotebookNames.length < 1) return notes;
-
-  const notebookIdsByName = new Map<string, NoteId>();
-  notebooks.forEach((n) => notebookIdsByName.set(n.title, n.id));
-  const notebooksById = new Map<NotebookId, Notebook>();
-  notebooks.forEach((n) => notebooksById.set(n.id, n));
+  if (filter.filteredNotebookNames.length < 1) return notes;
 
   // Get a list of valid notebook names to filter out.
-  filteredNotebookNames = filteredNotebookNames.filter((name) =>
-    notebookIdsByName.has(name)
-  );
+  // TODO: Is this even needed?
+  //filter = {
+  //  ...filter,
+  //  filteredNotebookNames: filter.filteredNotebookNames.filter((name) =>
+  //    cache.notebookIdsByName.has(name)
+  //  ),
+  //};
 
-  function shouldIncludeNote(parent_id: NotebookId): boolean {
-    var parentNotebook: Notebook = notebooksById.get(parent_id);
-    // Filter out the direct parent.
-    if (filteredNotebookNames.includes(parentNotebook.title)) {
-      return isIncludeFilter;
-    }
-
-    // Filter a note if any of its ancestor notebooks are filtered.
-    if (shouldFilterChildren) {
-      while (parentNotebook !== undefined) {
-        if (filteredNotebookNames.includes(parentNotebook.title)) {
-          return isIncludeFilter;
-        }
-        parentNotebook = notebooksById.get(parentNotebook.parent_id);
-      }
-    }
-    return !isIncludeFilter;
-  }
-
-  var filteredNotes = new Map<NoteId, Note>();
+  const filteredNotes = new Map<NoteId, Note>();
   notes.forEach(function (n, id) {
-    if (shouldIncludeNote(n.parent_id)) {
+    if (shouldIncludeNotebook(n.parent_id, filter, cache)) {
       filteredNotes.set(id, n);
     }
   });
@@ -165,7 +198,9 @@ function buildNote(joplinNote: JoplinNote): Note {
 async function getLinkedNotes(
   source_id: NoteId,
   maxDegree: number,
-  includeBacklinks: boolean
+  includeBacklinks: boolean,
+  cache: NotebookCache,
+  filter: NotebookFilter,
 ): Promise<Map<NoteId, Note>> {
   var pending = [];
   var visited = new Set();
@@ -182,6 +217,7 @@ async function getLinkedNotes(
     pending = [];
 
     for (const joplinNote of joplinNotes) {
+      if (!shouldIncludeNotebook(joplinNote.parent_id, filter, cache)) continue;
       // store note data to be returned at the end of the traversal
       const note = buildNote(joplinNote);
       note.distanceToCurrentNote = degree;
