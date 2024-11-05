@@ -9,9 +9,9 @@ import {getNotebooks} from "./notebooks";
 // Fetches every note.
 export async function getAllNotes(
   maxNotes: number,
-  namesToFilter: string[] = undefined,
-  shouldFilterChildren: boolean = undefined,
-  isIncludeFilter: boolean = undefined
+  namesToFilter: string[],
+  shouldFilterChildren: boolean,
+  isIncludeFilter: boolean
 ): Promise<Map<string, Note>> {
   var allNotes = new Array<JoplinNote>();
   var page_num = 1;
@@ -31,14 +31,11 @@ export async function getAllNotes(
   const noteMap = new Map();
   allNotes.map((note) => noteMap.set(note.id, buildNote(note)));
 
-  if (namesToFilter !== undefined &&
-      shouldFilterChildren !== undefined &&
-      isIncludeFilter !== undefined
-  ) {
+  if (namesToFilter.length > 0 && namesToFilter[0] !== "") {
     // if all filter values are present, filter notes and return
     const notebooks = await getNotebooks()
     const filteredNotes = await filterNotesByNotebookName(
-      notes,
+      noteMap,
       notebooks,
       namesToFilter,
       shouldFilterChildren,
@@ -60,9 +57,9 @@ export async function getLinkedNotes(
   source_id: string,
   maxDegree: number,
   includeBacklinks: boolean,
-  namesToFilter: string[] = undefined,
-  shouldFilterChildren: boolean = undefined,
-  isIncludeFilter: boolean = undefined
+  namesToFilter: string[],
+  shouldFilterChildren: boolean,
+  isIncludeFilter: boolean
 ): Promise<Map<string, Note>> {
   let pending = [];
   let visited = new Set();
@@ -85,10 +82,7 @@ export async function getLinkedNotes(
       noteMap.set(joplinNote.id, note);
 
       // if filter values are set, check notes list against filtered notebook names
-      if (namesToFilter !== undefined &&
-          shouldFilterChildren !== undefined &&
-          isIncludeFilter !== undefined
-      ) {
+      if (namesToFilter.length > 0 && namesToFilter[0] !== "") {
         const notebooks = await getNotebooks()
 
         noteMap = await filterNotesByNotebookName(

@@ -10,10 +10,10 @@ async function getNotes(
     selectedNote: string,
     maxNotes: number,
     maxDegree: number,
-    namesToFilter: Array<string> = undefined,
-    shouldFilterChildren: boolean = undefined,
-    isIncludeFilter: boolean = undefined,
-    includeBacklinks: boolean = undefined
+    namesToFilter: Array<string>,
+    shouldFilterChildren: boolean,
+    isIncludeFilter: boolean,
+    includeBacklinks: boolean
 ): Promise<Map<string, Note>> {
   var notes = new Map<string, Note>();
   if (maxDegree > 0) {
