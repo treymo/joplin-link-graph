@@ -1,6 +1,8 @@
 import joplin from "api";
-import { JoplinNote, Note, Tag } from "./types"
+import { JoplinNote, Note, Notebook, Tag } from "./types"
 import { buildNote } from "./utils"
+import { filterNotesByNotebookName } from "./filter";
+import {getNotebooks} from "./notebooks";
 
 // Functions to do with getting notes or notes metadata goes here
 
@@ -26,6 +28,26 @@ export async function getAllNotes(maxNotes: number): Promise<Map<string, Note>> 
     return noteMap;
 }
 
+export async function getAllNotesFiltered(
+    maxNotes: number,
+    namesToFilter: string[],
+    shouldFilterChildren: boolean,
+    isIncludeFilter: boolean
+): Promise<Map<string, Note>> {
+    const notes = await getAllNotes(maxNotes)
+    const notebooks = await getNotebooks()
+
+    const filteredNotes = await filterNotesByNotebookName(
+        notes,
+        notebooks,
+        namesToFilter,
+        shouldFilterChildren,
+        isIncludeFilter
+    )
+
+    return filteredNotes
+}
+
 // Fetch all notes linked to a given source note, up to a maximum degree of
 // separation.
 export async function getLinkedNotes(
@@ -33,10 +55,10 @@ export async function getLinkedNotes(
     maxDegree: number,
     includeBacklinks: boolean
 ): Promise<Map<string, Note>> {
-    var pending = [];
-    var visited = new Set();
+    let pending = [];
+    let visited = new Set();
     const noteMap = new Map();
-    var degree = 0;
+    let degree = 0;
 
     pending.push(source_id);
     do {
@@ -65,6 +87,70 @@ export async function getLinkedNotes(
                     pending.push(link);
                 }
             });
+        }
+
+        degree++;
+
+        // stop whenever we've reached the maximum degree of separation, or
+        // we've exhausted the adjacent nodes.
+    } while (pending.length > 0 && degree <= maxDegree);
+
+    return noteMap;
+}
+
+export async function getLinkedNotesFiltered(
+    source_id: string,
+    maxDegree: number,
+    includeBacklinks: boolean,
+    namesToFilter: string[],
+    shouldFilterChildren: boolean,
+    isIncludeFilter: boolean
+): Promise<Map<string, Note>> {
+    const notebooks = await getNotebooks()
+
+    let pending = [];
+    let visited = new Set();
+    let noteMap = new Map();
+    let degree = 0;
+
+    pending.push(source_id);
+    do {
+        // Traverse a new batch of pending note ids, storing the note data in
+        // the resulting map, and stashing the newly found linked notes for the
+        // next iteration.
+        const joplinNotes = await getNoteArray(pending);
+        pending.forEach((pendingNoteId) => visited.add(pendingNoteId));
+        pending = [];
+
+        for (const joplinNote of joplinNotes) {
+            // store note data to be returned at the end of the traversal
+            const note = buildNote(joplinNote);
+            note.distanceToCurrentNote = degree;
+            noteMap.set(joplinNote.id, note);
+
+            noteMap = await filterNotesByNotebookName(
+                noteMap,
+                notebooks,
+                namesToFilter,
+                shouldFilterChildren,
+                isIncludeFilter
+            )
+
+            // filter getting next links based on whether the note was excluded by notebook name
+            if (noteMap.has(joplinNote.id)) {
+                const allLinks = [
+                    ...note.links, // these are the forward-links
+                    ...(includeBacklinks ? await getAllBacklinksForNote(note.id) : []),
+                ];
+
+                // stash any new links for the next iteration
+                allLinks.forEach((link) => {
+                    // prevent cycles by filtering notes we've already seen.
+                    if (!visited.has(link)) {
+                        pending.push(link);
+                    }
+                });
+            }
         }
 
         degree++;
