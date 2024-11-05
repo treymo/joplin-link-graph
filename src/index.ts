@@ -1,7 +1,7 @@
 import joplin from "api";
-import * as joplinData from "./data";
 import { registerSettings } from "./settings";
 import { MenuItemLocation, ToolbarButtonLocation } from "api/types";
+import { getNotes, getAllLinksForNote, getNoteTags } from "./data/data";
 var deepEqual = require("fast-deep-equal");
 
 interface Edge {
@@ -102,7 +102,7 @@ joplin.plugins.register({
           joplin.commands.execute("openNote", message.id);
           break;
         case "get_note_tags":
-          return joplinData.getNoteTags(message.id);
+          return getNoteTags(message.id);
         case "set_setting":
           return joplin.settings.setValue(message.key, message.value);
         case "get_setting":
@@ -127,7 +127,7 @@ joplin.plugins.register({
         if (eventName === "noteChange") {
           // Don't update the graph is the links in this note haven't changed.
           const selectedNote = await joplin.workspace.selectedNote();
-          var noteLinks = joplinData.getAllLinksForNote(selectedNote.body);
+          var noteLinks = getAllLinksForNote(selectedNote.body);
           if (!deepEqual(noteLinks, prevNoteLinks)) {
             prevNoteLinks = noteLinks;
             dataChanged = true;
@@ -193,9 +193,7 @@ async function fetchData() {
   );
   const isIncludeFilter =
     (await joplin.settings.value("SETTING_FILTER_IS_INCLUDE_FILTER")) ===
-      "include"
-      ? true
-      : false;
+      "include";
   const includeBacklinks = await joplin.settings.value(
     "SETTING_INCLUDE_BACKLINKS"
   );
@@ -204,7 +202,7 @@ async function fetchData() {
   );
 
   const selectedNote = await joplin.workspace.selectedNote();
-  const notes = await joplinData.getNotes(
+  const notes = await getNotes(
     selectedNote.id,
     maxNotes,
     maxDegree,
