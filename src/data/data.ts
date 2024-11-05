@@ -1,9 +1,7 @@
 import { Note } from "./types";
 import {
   getAllNotes,
-  getAllNotesFiltered,
-  getLinkedNotes,
-  getLinkedNotesFiltered
+  getLinkedNotes
 } from "./notes";
 // every function required by index.ts is listed here
 
@@ -12,40 +10,28 @@ async function getNotes(
     selectedNote: string,
     maxNotes: number,
     maxDegree: number,
-    namesToFilter: Array<string>,
-    shouldFilterChildren: boolean,
-    isIncludeFilter: boolean,
-    includeBacklinks: boolean
+    namesToFilter: Array<string> = undefined,
+    shouldFilterChildren: boolean = undefined,
+    isIncludeFilter: boolean = undefined,
+    includeBacklinks: boolean = undefined
 ): Promise<Map<string, Note>> {
   var notes = new Map<string, Note>();
   if (maxDegree > 0) {
-    if (namesToFilter.length > 0) {
-      notes = await getLinkedNotesFiltered(
-          selectedNote,
-          maxDegree,
-          includeBacklinks,
-          namesToFilter,
-          shouldFilterChildren,
-          isIncludeFilter
-      )
-    } else {
-      notes = await getLinkedNotes(
-          selectedNote,
-          maxDegree,
-          includeBacklinks
-      )
-    }
+    notes = await getLinkedNotes(
+      selectedNote,
+      maxDegree,
+      includeBacklinks,
+      namesToFilter,
+      shouldFilterChildren,
+      isIncludeFilter
+    )
   } else {
-    if (namesToFilter.length > 0) {
-      notes = await getAllNotesFiltered(
-          maxNotes,
-          namesToFilter,
-          shouldFilterChildren,
-          isIncludeFilter
-      )
-    } else {
-      notes = await getAllNotes(maxNotes)
-    }
+    notes = await getAllNotes(
+      maxNotes,
+      namesToFilter,
+      shouldFilterChildren,
+      isIncludeFilter
+    )
   }
   return notes;
 }

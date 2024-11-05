@@ -7,160 +7,127 @@ import {getNotebooks} from "./notebooks";
 // Functions to do with getting notes or notes metadata goes here
 
 // Fetches every note.
-export async function getAllNotes(maxNotes: number): Promise<Map<string, Note>> {
-    var allNotes = new Array<JoplinNote>();
-    var page_num = 1;
-    do {
-        // `parent_id` is the ID of the notebook containing the note.
-        var notes = await joplin.data.get(["notes"], {
-            fields: ["id", "parent_id", "title", "body"],
-            order_by: "updated_time",
-            order_dir: "DESC",
-            limit: maxNotes < 100 ? maxNotes : 100,
-            page: page_num,
-        });
-        allNotes.push(...notes.items);
-        page_num++;
-    } while (notes.has_more && allNotes.length < maxNotes);
-
-    const noteMap = new Map();
-    allNotes.map((note) => noteMap.set(note.id, buildNote(note)));
-    return noteMap;
-}
-
-export async function getAllNotesFiltered(
-    maxNotes: number,
-    namesToFilter: string[],
-    shouldFilterChildren: boolean,
-    isIncludeFilter: boolean
+export async function getAllNotes(
+  maxNotes: number,
+  namesToFilter: string[] = undefined,
+  shouldFilterChildren: boolean = undefined,
+  isIncludeFilter: boolean = undefined
 ): Promise<Map<string, Note>> {
-    const notes = await getAllNotes(maxNotes)
-    const notebooks = await getNotebooks()
+  var allNotes = new Array<JoplinNote>();
+  var page_num = 1;
+  do {
+    // `parent_id` is the ID of the notebook containing the note.
+    var notes = await joplin.data.get(["notes"], {
+      fields: ["id", "parent_id", "title", "body"],
+      order_by: "updated_time",
+      order_dir: "DESC",
+      limit: maxNotes < 100 ? maxNotes : 100,
+      page: page_num,
+    });
+    allNotes.push(...notes.items);
+    page_num++;
+  } while (notes.has_more && allNotes.length < maxNotes);
 
+  const noteMap = new Map();
+  allNotes.map((note) => noteMap.set(note.id, buildNote(note)));
+
+  if (namesToFilter !== undefined &&
+      shouldFilterChildren !== undefined &&
+      isIncludeFilter !== undefined
+  ) {
+    // if all filter values are present, filter notes and return
+    const notebooks = await getNotebooks()
     const filteredNotes = await filterNotesByNotebookName(
-        notes,
-        notebooks,
-        namesToFilter,
-        shouldFilterChildren,
-        isIncludeFilter
+      notes,
+      notebooks,
+      namesToFilter,
+      shouldFilterChildren,
+      isIncludeFilter
     )
 
     return filteredNotes
+
+  } else {
+    // else just return as usual
+
+    return noteMap
+  }
 }
 
 // Fetch all notes linked to a given source note, up to a maximum degree of
 // separation.
 export async function getLinkedNotes(
-    source_id: string,
-    maxDegree: number,
-    includeBacklinks: boolean
+  source_id: string,
+  maxDegree: number,
+  includeBacklinks: boolean,
+  namesToFilter: string[] = undefined,
+  shouldFilterChildren: boolean = undefined,
+  isIncludeFilter: boolean = undefined
 ): Promise<Map<string, Note>> {
-    let pending = [];
-    let visited = new Set();
-    const noteMap = new Map();
-    let degree = 0;
+  let pending = [];
+  let visited = new Set();
+  let noteMap = new Map();
+  let degree = 0;
 
-    pending.push(source_id);
-    do {
-        // Traverse a new batch of pending note ids, storing the note data in
-        // the resulting map, and stashing the newly found linked notes for the
-        // next iteration.
-        const joplinNotes = await getNoteArray(pending);
-        pending.forEach((pendingNoteId) => visited.add(pendingNoteId));
-        pending = [];
+  pending.push(source_id);
+  do {
+    // Traverse a new batch of pending note ids, storing the note data in
+    // the resulting map, and stashing the newly found linked notes for the
+    // next iteration.
+    const joplinNotes = await getNoteArray(pending);
+    pending.forEach((pendingNoteId) => visited.add(pendingNoteId));
+    pending = [];
 
-        for (const joplinNote of joplinNotes) {
-            // store note data to be returned at the end of the traversal
-            const note = buildNote(joplinNote);
-            note.distanceToCurrentNote = degree;
-            noteMap.set(joplinNote.id, note);
+    for (const joplinNote of joplinNotes) {
+      // store note data to be returned at the end of the traversal
+      const note = buildNote(joplinNote);
+      note.distanceToCurrentNote = degree;
+      noteMap.set(joplinNote.id, note);
 
-            const allLinks = [
-                ...note.links, // these are the forward-links
-                ...(includeBacklinks ? await getAllBacklinksForNote(note.id) : []),
-            ];
+      // if filter values are set, check notes list against filtered notebook names
+      if (namesToFilter !== undefined &&
+          shouldFilterChildren !== undefined &&
+          isIncludeFilter !== undefined
+      ) {
+        const notebooks = await getNotebooks()
 
-            // stash any new links for the next iteration
-            allLinks.forEach((link) => {
-                // prevent cycles by filtering notes we've already seen.
-                if (!visited.has(link)) {
-                    pending.push(link);
-                }
-            });
-        }
+        noteMap = await filterNotesByNotebookName(
+          noteMap,
+          notebooks,
+          namesToFilter,
+          shouldFilterChildren,
+          isIncludeFilter
+        )
+      }
 
-        degree++;
+      // filter getting next links based on whether the note was excluded by notebook name
+      // we only remove notes when all filter values are present so this automatically succeeds
+      // when in non filtering mode
+      if (noteMap.has(joplinNote.id)) {
+        const allLinks = [
+          ...note.links, // these are the forward-links
+          ...(includeBacklinks ? await getAllBacklinksForNote(note.id) : []),
+        ];
 
-        // stop whenever we've reached the maximum degree of separation, or
-        // we've exhausted the adjacent nodes.
-    } while (pending.length > 0 && degree <= maxDegree);
+        // stash any new links for the next iteration
+        allLinks.forEach((link) => {
+          // prevent cycles by filtering notes we've already seen.
+          if (!visited.has(link)) {
+            pending.push(link);
+          }
+        });
+      }
+    }
 
-    return noteMap;
+    degree++;
+
+    // stop whenever we've reached the maximum degree of separation, or
+    // we've exhausted the adjacent nodes.
+  } while (pending.length > 0 && degree <= maxDegree);
+
+  return noteMap;
 }
 
-export async function getLinkedNotesFiltered(
-    source_id: string,
-    maxDegree: number,
-    includeBacklinks: boolean,
-    namesToFilter: string[],
-    shouldFilterChildren: boolean,
-    isIncludeFilter: boolean
-): Promise<Map<string, Note>> {
-    const notebooks = await getNotebooks()
-
-    let pending = [];
-    let visited = new Set();
-    let noteMap = new Map();
-    let degree = 0;
-
-    pending.push(source_id);
-    do {
-        // Traverse a new batch of pending note ids, storing the note data in
-        // the resulting map, and stashing the newly found linked notes for the
-        // next iteration.
-        const joplinNotes = await getNoteArray(pending);
-        pending.forEach((pendingNoteId) => visited.add(pendingNoteId));
-        pending = [];
-
-        for (const joplinNote of joplinNotes) {
-            // store note data to be returned at the end of the traversal
-            const note = buildNote(joplinNote);
-            note.distanceToCurrentNote = degree;
-            noteMap.set(joplinNote.id, note);
-
-            noteMap = await filterNotesByNotebookName(
-                noteMap,
-                notebooks,
-                namesToFilter,
-                shouldFilterChildren,
-                isIncludeFilter
-            )
-
-            // filter getting next links based on whether the note was excluded by notebook name
-            if (noteMap.has(joplinNote.id)) {
-                const allLinks = [
-                    ...note.links, // these are the forward-links
-                    ...(includeBacklinks ? await getAllBacklinksForNote(note.id) : []),
-                ];
-
-                // stash any new links for the next iteration
-                allLinks.forEach((link) => {
-                    // prevent cycles by filtering notes we've already seen.
-                    if (!visited.has(link)) {
-                        pending.push(link);
-                    }
-                });
-            }
-        }
-
-        degree++;
-
-        // stop whenever we've reached the maximum degree of separation, or
-        // we've exhausted the adjacent nodes.
-    } while (pending.length > 0 && degree <= maxDegree);
-
-    return noteMap;
-}
 
 export async function getNoteArray(ids: string[]): Promise<Array<JoplinNote>> {
     var promises = ids.map((id) =>
