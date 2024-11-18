@@ -23,26 +23,28 @@ export async function getFilteredNotebooks(
   shouldFilterChildren: boolean,
   isIncludeFilter: boolean
 ): Promise<Notebook[]> {
-    let filteredNotebooks = await getNotebooksByNameAndIDs(filterString)
+    const allNotebooks = await getNotebooks()
+
+    let filteredNotebooks = getNotebooksByNameAndIDs(filterString, allNotebooks)
 
     if (shouldFilterChildren) {
-        filteredNotebooks = await getNotebookChildren(filteredNotebooks)
+        filteredNotebooks = getNotebookChildren(filteredNotebooks, allNotebooks)
     }
 
     if (isIncludeFilter) {
-        filteredNotebooks = await invertNotebookSelection(filteredNotebooks)
+        filteredNotebooks = invertNotebookSelection(filteredNotebooks, allNotebooks)
     }
 
     return filteredNotebooks
 }
 
-async function getNotebooksByNameAndIDs(
-  filterText: string
-): Promise<Notebook[]> {
+function getNotebooksByNameAndIDs(
+  filterText: string,
+  allNotebooks: Notebook[]
+): Notebook[] {
     // TODO: currently only gets by name, not IDs
 
     let filteredNotebooks: Notebook[] = []
-    const allNotebooks = await getNotebooks()
 
     for (let text in filterText.split(",")) {
         let notebooks = allNotebooks
@@ -53,11 +55,10 @@ async function getNotebooksByNameAndIDs(
     return filteredNotebooks
 }
 
-async function getNotebookChildren(
-  notebooks: Notebook[]
-): Promise<Notebook[]> {
-    const allNotebooks = await getNotebooks()
-
+function getNotebookChildren(
+  notebooks: Notebook[],
+  allNotebooks: Notebook[]
+): Notebook[] {
     // for every notebook, if
     //   - it's parent is in the filter list
     //   - it's not in the filter list itself
@@ -88,10 +89,9 @@ async function getNotebookChildren(
     return notebooks
 }
 
-async function invertNotebookSelection(
-  notebooks: Notebook[]
-): Promise<Notebook[]> {
-    const allNotebooks = await getNotebooks()
-
+function invertNotebookSelection(
+  notebooks: Notebook[],
+  allNotebooks: Notebook[]
+): Notebook[] {
     return allNotebooks.filter(anb => ! notebooks.map(nb => nb.id).includes(anb.id))
 }
