@@ -10,12 +10,15 @@ async function getNotes(
     selectedNote: string,
     maxNotes: number,
     maxDegree: number,
-    namesToFilter: Array<string>,
+    filteredNotebookNames: string,
     shouldFilterChildren: boolean,
     isIncludeFilter: boolean,
     includeBacklinks: boolean
 ): Promise<Map<string, Note>> {
   var notes = new Map<string, Note>();
+
+  const namesToFilter = filteredNotebookNames.split(",")
+
   if (maxDegree > 0) {
     notes = await getLinkedNotes(
       selectedNote,
