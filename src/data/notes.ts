@@ -1,17 +1,14 @@
 import joplin from "api";
 import { JoplinNote, Note, Notebook, Tag } from "./types"
 import { buildNote } from "./utils"
-import { filterNotesByNotebookName } from "./filter";
-import {getNotebooks} from "./notebooks";
+import { filterNotesByNotebook } from "./filter";
 
 // Functions to do with getting notes or notes metadata goes here
 
 // Fetches every note.
 export async function getAllNotes(
   maxNotes: number,
-  namesToFilter: string[],
-  shouldFilterChildren: boolean,
-  isIncludeFilter: boolean
+  notebooksToFilter: Notebook[]
 ): Promise<Map<string, Note>> {
   var allNotes = new Array<JoplinNote>();
   var page_num = 1;
@@ -31,19 +28,10 @@ export async function getAllNotes(
   const noteMap = new Map();
   allNotes.map((note) => noteMap.set(note.id, buildNote(note)));
 
-  if (namesToFilter.length > 0 && namesToFilter[0] !== "") {
-    // if all filter values are present, filter notes and return
-    const notebooks = await getNotebooks()
-    const filteredNotes = await filterNotesByNotebookName(
-      noteMap,
-      notebooks,
-      namesToFilter,
-      shouldFilterChildren,
-      isIncludeFilter
-    )
+  if (notebooksToFilter.length > 0) {
+      // if filter values are present, filter notes and return
 
-    return filteredNotes
-
+      return filterNotesByNotebook(noteMap, notebooksToFilter)
   } else {
     // else just return as usual
 
@@ -57,9 +45,7 @@ export async function getLinkedNotes(
   source_id: string,
   maxDegree: number,
   includeBacklinks: boolean,
-  namesToFilter: string[],
-  shouldFilterChildren: boolean,
-  isIncludeFilter: boolean
+  notebooksToFilter: Notebook[]
 ): Promise<Map<string, Note>> {
   let pending = [];
   let visited = new Set();
@@ -82,16 +68,8 @@ export async function getLinkedNotes(
       noteMap.set(joplinNote.id, note);
 
       // if filter values are set, check notes list against filtered notebook names
-      if (namesToFilter.length > 0 && namesToFilter[0] !== "") {
-        const notebooks = await getNotebooks()
-
-        noteMap = await filterNotesByNotebookName(
-          noteMap,
-          notebooks,
-          namesToFilter,
-          shouldFilterChildren,
-          isIncludeFilter
-        )
+      if (notebooksToFilter.length > 0) {
+        noteMap = filterNotesByNotebook(noteMap, notebooksToFilter)
       }
 
       // filter getting next links based on whether the note was excluded by notebook name
