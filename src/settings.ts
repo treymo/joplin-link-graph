@@ -55,13 +55,13 @@ export async function registerSettings() {
       description:
         "Include will show only notebooks in the filter list and exclude will show all notebooks not in the filter list.",
     },
-    SETTING_NOTEBOOK_NAMES_TO_FILTER: {
+    SETTING_NOTEBOOK_STRING_TO_FILTER: {
       value: "",
       type: SettingItemType.String,
       section: sectionName,
       public: true,
       label: "Notebooks names to filter",
-      description: "Comma separated list of Notebook names to filter.",
+      description: "Comma separated list of Notebooks to filter. You can use either the ID for specific notebooks or a name to match multiple.",
     },
     SETTING_FILTER_CHILD_NOTEBOOKS: {
       value: true,
