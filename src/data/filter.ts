@@ -1,5 +1,6 @@
 import { Note, Notebook } from "./types";
 import { getFilteredNotebooks } from "./notebooks";
+import { getNotesFromTagString } from "./tags";
 
 // functions to do with filtering go here
 
@@ -9,11 +10,15 @@ import { getFilteredNotebooks } from "./notebooks";
  * @param notebookFilterString comma separated string of notebooks to filter by, values can be IDs or names
  * @param shouldFilterChildren boolean toggle for filtering notes in notebooks that are children of the filters
  * @param isIncludeFilter boolean toggle to invert selected notebooks
+ * @param filteredTagsNames comma separated string of tags to filter by, values must be names only
+ * @param isTagsIncludeFilter boolean toggle to include or exclude by tags
  */
 export async function getFilterFunction(
   notebookFilterString: string,
   shouldFilterChildren: boolean,
-  isIncludeFilter: boolean
+  isIncludeFilter: boolean,
+  filteredTagsNames: string,
+  isTagsIncludeFilter: boolean
 ): Promise<(nm: Map<string, Note>) => Map<string, Note>> {
     let notebooks = await getFilteredNotebooks(
       notebookFilterString,
@@ -21,12 +26,25 @@ export async function getFilterFunction(
       isIncludeFilter
     )
 
+    const notesFromTags = await getNotesFromTagString(filteredTagsNames)
+
     // TODO: update filter func as more filter options get added
     let filterFunc =
       (a: Map<string, Note>) => {
           if (notebooks.length > 0) {
               a = filterNotesByNotebook(a, notebooks)
           }
+
+          a = new Map(
+            [...a]
+              .filter(([k, v])=>
+                  notesFromTags
+                    .map(n => n.id)
+                    // keeps when .includes() and isTagsIncludeFilter are either both true or both false
+                    // it's an XNOR gate
+                    .includes(v.id) == isTagsIncludeFilter
+              )
+          )
 
           return a
       }
