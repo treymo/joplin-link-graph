@@ -192,7 +192,13 @@ async function fetchData() {
   );
   const isIncludeFilter =
     (await joplin.settings.value("SETTING_FILTER_IS_INCLUDE_FILTER")) ===
-      "include";
+    "include";
+  const filteredTagsNames = await joplin.settings.value(
+    "SETTING_FILTER_TAGS_NAMES"
+  );
+  const isTagsIncludeFilter =
+    (await joplin.settings.value("SETTING_FILTER_TAGS_IS_INCLUDE")) ===
+    "include";
   const includeBacklinks = await joplin.settings.value(
     "SETTING_INCLUDE_BACKLINKS"
   );
@@ -208,6 +214,8 @@ async function fetchData() {
     filteredNotebookNames,
     shouldFilterChildren,
     isIncludeFilter,
+    filteredTagsNames,
+    isTagsIncludeFilter,
     includeBacklinks
   );
 
