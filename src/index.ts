@@ -185,7 +185,7 @@ async function fetchData() {
   );
   const maxNotes = await joplin.settings.value("SETTING_MAX_NODES");
   const filteredNotebookString = await joplin.settings.value(
-    "SETTING_NOTEBOOK_STRING_TO_FILTER"
+    "SETTING_NOTEBOOK_NAMES_TO_FILTER"
   );
   const shouldFilterChildren = await joplin.settings.value(
     "SETTING_FILTER_CHILD_NOTEBOOKS"

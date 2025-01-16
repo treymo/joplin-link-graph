@@ -55,7 +55,7 @@ export async function registerSettings() {
       description:
         "Include will show only notebooks in the filter list and exclude will show all notebooks not in the filter list.",
     },
-    SETTING_NOTEBOOK_STRING_TO_FILTER: {
+    SETTING_NOTEBOOK_NAMES_TO_FILTER: {
       value: "",
       type: SettingItemType.String,
       section: sectionName,
