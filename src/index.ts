@@ -193,6 +193,9 @@ async function fetchData() {
   const isIncludeFilter =
     (await joplin.settings.value("SETTING_FILTER_IS_INCLUDE_FILTER")) ===
       "include";
+  const filteredNoteIDs = await joplin.settings.value(
+    "SETTING_NOTE_IDS_TO_FILTER"
+  );
   const includeBacklinks = await joplin.settings.value(
     "SETTING_INCLUDE_BACKLINKS"
   );
@@ -208,6 +211,7 @@ async function fetchData() {
     filteredNotebookNames,
     shouldFilterChildren,
     isIncludeFilter,
+    filteredNoteIDs,
     includeBacklinks
   );
 

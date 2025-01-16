@@ -9,11 +9,13 @@ import { getFilteredNotebooks } from "./notebooks";
  * @param notebookFilterString comma separated string of notebooks to filter by, values can be IDs or names
  * @param shouldFilterChildren boolean toggle for filtering notes in notebooks that are children of the filters
  * @param isIncludeFilter boolean toggle to invert selected notebooks
+ * @param filteredNoteIDs comma separated string of notes to filter by, values can be IDs only
  */
 export async function getFilterFunction(
   notebookFilterString: string,
   shouldFilterChildren: boolean,
-  isIncludeFilter: boolean
+  isIncludeFilter: boolean,
+  filteredNoteIDs: string
 ): Promise<(nm: Map<string, Note>) => Map<string, Note>> {
     let notebooks = await getFilteredNotebooks(
       notebookFilterString,
@@ -21,12 +23,20 @@ export async function getFilterFunction(
       isIncludeFilter
     )
 
+    const noteIDs = filteredNoteIDs.split(",")
+
     // TODO: update filter func as more filter options get added
     let filterFunc =
       (a: Map<string, Note>) => {
           if (notebooks.length > 0) {
               a = filterNotesByNotebook(a, notebooks)
           }
+
+          a = new Map(
+            // spread the previous map into an array, allowing use of .filter()
+            [...a]
+              .filter(([k, v]) => ! noteIDs.includes(v.id))
+          )
 
           return a
       }

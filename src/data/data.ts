@@ -14,6 +14,7 @@ async function getNotes(
     filteredNotebookNames: string,
     shouldFilterChildren: boolean,
     isIncludeFilter: boolean,
+    filteredNoteIDs: string,
     includeBacklinks: boolean
 ): Promise<Map<string, Note>> {
   let notes = new Map<string, Note>();
@@ -21,7 +22,8 @@ async function getNotes(
   const filterFunc = await getFilterFunction(
     filteredNotebookNames,
     shouldFilterChildren,
-    isIncludeFilter
+    isIncludeFilter,
+    filteredNoteIDs
   )
 
   if (maxDegree > 0) {

@@ -72,6 +72,15 @@ export async function registerSettings() {
       description:
         "Filters notebooks that are children of the notebooks listed above.",
     },
+    SETTING_NOTE_IDS_TO_FILTER: {
+      value: "",
+      type: SettingItemType.String,
+      section: sectionName,
+      public: true,
+      label: "Filter notes",
+      description:
+        "Filters notes by IDs. (Note: filtered notes are always excluded)",
+    },
     SETTING_MAX_SEPARATION_DEGREE: {
       value: DEFAULT_MAX_DEGREE,
       type: SettingItemType.Int,
