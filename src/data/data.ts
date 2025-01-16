@@ -3,7 +3,7 @@ import {
   getAllNotes,
   getLinkedNotes
 } from "./notes";
-import { getFilteredNotebooks } from "./notebooks";
+import { getFilterFunction } from "./filter";
 // every function required by index.ts is listed here
 
 // Fetch notes
@@ -16,9 +16,9 @@ async function getNotes(
     isIncludeFilter: boolean,
     includeBacklinks: boolean
 ): Promise<Map<string, Note>> {
-  var notes = new Map<string, Note>();
+  let notes = new Map<string, Note>();
 
-  const notebooksToFilter = await getFilteredNotebooks(
+  const filterFunc = await getFilterFunction(
     filteredNotebookNames,
     shouldFilterChildren,
     isIncludeFilter
@@ -29,12 +29,12 @@ async function getNotes(
       selectedNote,
       maxDegree,
       includeBacklinks,
-      notebooksToFilter
+      filterFunc
     )
   } else {
     notes = await getAllNotes(
       maxNotes,
-      notebooksToFilter
+      filterFunc
     )
   }
   return notes;

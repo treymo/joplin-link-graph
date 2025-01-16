@@ -1,14 +1,13 @@
 import joplin from "api";
-import { JoplinNote, Note, Notebook, Tag } from "./types"
+import { JoplinNote, Note, Tag } from "./types"
 import { buildNote } from "./utils"
-import { filterNotesByNotebook } from "./filter";
 
 // Functions to do with getting notes or notes metadata goes here
 
 // Fetches every note.
 export async function getAllNotes(
   maxNotes: number,
-  notebooksToFilter: Notebook[]
+  filterFunc: (nm: Map<string, Note>) => Map<string, Note>
 ): Promise<Map<string, Note>> {
   var allNotes = new Array<JoplinNote>();
   var page_num = 1;
@@ -25,18 +24,13 @@ export async function getAllNotes(
     page_num++;
   } while (notes.has_more && allNotes.length < maxNotes);
 
-  const noteMap = new Map();
+  let noteMap = new Map();
   allNotes.map((note) => noteMap.set(note.id, buildNote(note)));
 
-  if (notebooksToFilter.length > 0) {
-      // if filter values are present, filter notes and return
+  // do final filter before returning
+  noteMap = filterFunc(noteMap)
 
-      return filterNotesByNotebook(noteMap, notebooksToFilter)
-  } else {
-    // else just return as usual
-
-    return noteMap
-  }
+  return noteMap
 }
 
 // Fetch all notes linked to a given source note, up to a maximum degree of
@@ -45,7 +39,7 @@ export async function getLinkedNotes(
   source_id: string,
   maxDegree: number,
   includeBacklinks: boolean,
-  notebooksToFilter: Notebook[]
+  filterFunc: (nm: Map<string, Note>) => Map<string, Note>
 ): Promise<Map<string, Note>> {
   let pending = [];
   let visited = new Set();
@@ -67,10 +61,7 @@ export async function getLinkedNotes(
       note.distanceToCurrentNote = degree;
       noteMap.set(joplinNote.id, note);
 
-      // if filter values are set, check notes list against filtered notebook names
-      if (notebooksToFilter.length > 0) {
-        noteMap = filterNotesByNotebook(noteMap, notebooksToFilter)
-      }
+      noteMap = filterFunc(noteMap)
 
       // filter getting next links based on whether the note was excluded by notebook name
       // we only remove notes when all filter values are present so this automatically succeeds
