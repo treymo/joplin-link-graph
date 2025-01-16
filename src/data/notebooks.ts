@@ -77,13 +77,12 @@ function getNotebookChildren(
         // fetch next set of children not in the filter list
         childrenOfFilteredNBs =
           allNotebooks
-            .filter(anb => ! lastChildren
+            .filter(anb => ! notebooks
               .map(nb => nb.id)
-              .includes(anb.id)
-            ).filter(anb => lastChildren
-            .map(nb => nb.id)
-            .includes(anb.parent_id)
-          )
+              .includes(anb.id))
+            .filter(anb => lastChildren
+              .map(nb => nb.id)
+              .includes(anb.parent_id))
     }
 
     return notebooks
