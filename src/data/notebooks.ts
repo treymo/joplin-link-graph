@@ -46,7 +46,7 @@ function getNotebooksByNameAndIDs(
 
     let filteredNotebooks: Notebook[] = []
 
-    for (let text in filterText.split(",")) {
+    for (let text of filterText.split(",")) {
         let notebooks = allNotebooks
           .filter(anb => anb.title == text)
         filteredNotebooks.push(...notebooks)
