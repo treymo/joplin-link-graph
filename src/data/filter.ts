@@ -38,7 +38,7 @@ export async function getFilterFunction(
 /**
  * Returns a filtered map of notes by notebook.
  */
-export function filterNotesByNotebook(
+function filterNotesByNotebook(
   noteMap: Map<string, Note>,
   notebooks: Array<Notebook>
 ): Map<string, Note> {
