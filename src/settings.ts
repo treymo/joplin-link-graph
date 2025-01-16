@@ -72,6 +72,29 @@ export async function registerSettings() {
       description:
         "Filters notebooks that are children of the notebooks listed above.",
     },
+    SETTING_FILTER_TAGS_IS_INCLUDE: {
+      value: "exclude",
+      type: SettingItemType.String,
+      isEnum: true,
+      section: sectionName,
+      public: true,
+      options: {
+        include: "Include",
+        exclude: "Exclude",
+      },
+      label: "Should notes with the filtered tags be included or excluded?",
+      description:
+        "Include will show only notes with at least one tag in the list. Exclude will show all notes with tags not in the filter list.",
+    },
+    SETTING_FILTER_TAGS_NAMES: {
+      value: "",
+      type: SettingItemType.String,
+      section: sectionName,
+      public: true,
+      label: "Filter by tags",
+      description:
+        "Comma separated list of tags to filter. Values must be names of tags, not IDs.",
+    },
     SETTING_MAX_SEPARATION_DEGREE: {
       value: DEFAULT_MAX_DEGREE,
       type: SettingItemType.Int,
