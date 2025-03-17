@@ -1,5 +1,5 @@
 {
-  "name": "joplin-plugin-link-graph",
+  "name": "joplin-plugin-link-graph-ui",
   "version": "1.5.1",
   "scripts": {
     "dist": "webpack --env joplin-plugin-config=buildMain && webpack --env joplin-plugin-config=buildExtraScripts && webpack --env joplin-plugin-config=createArchive",
