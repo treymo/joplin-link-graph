@@ -23,7 +23,7 @@ async function getNotes(
     shouldFilterChildren,
     isIncludeFilter
   )
-
+  
   if (maxDegree > 0) {
     notes = await getLinkedNotes(
       selectedNote,
