@@ -61,7 +61,7 @@ export async function registerSettings() {
       section: sectionName,
       public: true,
       label: "Notebooks names to filter",
-      description: "Comma separated list of Notebook names to filter.",
+      description: "Comma separated list of Notebooks to filter. You can use either the ID for specific notebooks or a name to match multiple.",
     },
     SETTING_FILTER_CHILD_NOTEBOOKS: {
       value: true,
