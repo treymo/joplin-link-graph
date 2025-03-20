@@ -25,7 +25,7 @@ export async function getFilteredNotebooks(
 ): Promise<Notebook[]> {
     const allNotebooks = await getNotebooks()
 
-    let filteredNotebooks = getNotebooksByNameAndIDs(filterString, allNotebooks)
+    let filteredNotebooks = await getNotebooksByNameAndIDs(filterString, allNotebooks)
 
     if (shouldFilterChildren) {
         filteredNotebooks = getNotebookChildren(filteredNotebooks, allNotebooks)
@@ -38,17 +38,25 @@ export async function getFilteredNotebooks(
     return filteredNotebooks
 }
 
-function getNotebooksByNameAndIDs(
+async function getNotebooksByNameAndIDs(
   filterText: string,
   allNotebooks: Notebook[]
-): Notebook[] {
-    // TODO: currently only gets by name, not IDs
-
+): Promise<Notebook[]> {
     let filteredNotebooks: Notebook[] = []
 
-    for (let text of filterText.split(",")) {
-        let notebooks = allNotebooks
-          .filter(anb => anb.title == text)
+    for (const text of filterText.split(",")) {
+        let notebooks = await joplin.data.get(
+          ["folders", text], {
+              fields: ["id", "title", "parent_id"],
+              page: 1,
+          });
+
+        // if we didn't find exactly one notebook, it's not an ID, so we do a name search instead
+        if (notebooks.length != 1) {
+            notebooks = allNotebooks
+              .filter(nb => nb.title == text)
+        }
+
         filteredNotebooks.push(...notebooks)
     }
 
