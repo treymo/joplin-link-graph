@@ -6,9 +6,11 @@ import { getFilteredNotebooks } from "./notebooks";
 /**
  * Takes all note filter parameters and returns a simplified function that filters a Map of notes
  *
- * @param notebookFilterString comma separated string of notebooks to filter by, values can be IDs or names
- * @param shouldFilterChildren boolean toggle for filtering notes in notebooks that are children of the filters
+ * @param notebookFilterString comma separated string of notebooks to ***exclude***, values should be names
+ * @param shouldFilterChildren boolean toggle to also include notebooks that are the children of those in the filter
  * @param isIncludeFilter boolean toggle to invert selected notebooks
+ *
+ * @returns a promise for a function of type `(nm: Map<string, Note>) => Map<string, Note>` that can be used to filter notes
  */
 export async function getFilterFunction(
   notebookFilterString: string,
@@ -37,6 +39,11 @@ export async function getFilterFunction(
 
 /**
  * Returns a filtered map of notes by notebook.
+ *
+ * @param noteMap map of ID to Note objects to be filtered on
+ * @param excludedNotebooks array of Notebook objects to ***exclude*** notes with
+ *
+ * @returns a new `Map<string, Note>` according to the filtered notebooks
  */
 function filterNotesByNotebook(
   noteMap: Map<string, Note>,

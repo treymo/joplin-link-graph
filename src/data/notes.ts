@@ -4,7 +4,12 @@ import { buildNote } from "./utils"
 
 // Functions to do with getting notes or notes metadata goes here
 
-// Fetches every note.
+/**
+ * Fetch all notes , up to a maximum number
+ *
+ * @param maxNotes maximum notes to collect
+ * @param filterFunc filter function to exclude notes according to values used when it was created
+ */
 export async function getAllNotes(
   maxNotes: number,
   filterFunc: (nm: Map<string, Note>) => Map<string, Note>
@@ -33,8 +38,14 @@ export async function getAllNotes(
   return noteMap
 }
 
-// Fetch all notes linked to a given source note, up to a maximum degree of
-// separation.
+/**
+ * Fetch all notes linked to a given source note, up to a maximum degree of separation
+ *
+ * @param source_id ID of currently selected note
+ * @param maxDegree maximum distance away from the current note to get notes for
+ * @param includeBacklinks boolean toggle to also use backlinks to collect notes
+ * @param filterFunc filter function to exclude notes according to values used when it was created
+ */
 export async function getLinkedNotes(
   source_id: string,
   maxDegree: number,

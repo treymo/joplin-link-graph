@@ -3,6 +3,9 @@ import { Notebook } from "./types";
 
 // Functions to do with notebooks or notebooks metadata goes here
 
+/**
+ * Gets all notebooks
+ */
 export async function getNotebooks(): Promise<Array<Notebook>> {
     var allNotebooks = [];
     var page_num = 1;
@@ -18,6 +21,13 @@ export async function getNotebooks(): Promise<Array<Notebook>> {
     return allNotebooks;
 }
 
+/**
+ * Get notebooks according to given parameters
+ *
+ * @param filterString comma separated string of notebook names to add to filter
+ * @param shouldFilterChildren boolean toggle to also add children of filtered notebooks to filter
+ * @param isIncludeFilter boolean toggle to invert selected notebooks
+ */
 export async function getFilteredNotebooks(
   filterString: string,
   shouldFilterChildren: boolean,
