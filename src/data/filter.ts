@@ -47,9 +47,9 @@ export async function getFilterFunction(
  */
 function filterNotesByNotebook(
   noteMap: Map<string, Note>,
-  notebooks: Array<Notebook>
+  excludedNotebooks: Array<Notebook>
 ): Map<string, Note> {
-    if (notebooks.length == 0) {
+    if (excludedNotebooks.length == 0) {
         return noteMap
     }
 
@@ -57,7 +57,7 @@ function filterNotesByNotebook(
 
     noteMap.forEach((v, k, m) => {
         // if note's parent id (the folder it lives in) doesn't match any excluded notebook IDs, include it
-        if (notebooks
+        if (excludedNotebooks
           .filter(nb => nb.id == v.parent_id)
           .length == 0
         ) {
