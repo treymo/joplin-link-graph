@@ -24,7 +24,7 @@ export async function getNotebooks(): Promise<Array<Notebook>> {
 /**
  * Get notebooks according to given parameters
  *
- * @param filterString comma separated string of notebook names to add to filter
+ * @param filterString comma separated string of notebook names/IDs to add to filter
  * @param shouldFilterChildren boolean toggle to also add children of filtered notebooks to filter
  * @param isIncludeFilter boolean toggle to invert selected notebooks
  */
@@ -35,7 +35,7 @@ export async function getFilteredNotebooks(
 ): Promise<Notebook[]> {
     const allNotebooks = await getNotebooks()
 
-    let filteredNotebooks = getNotebooksByNameAndIDs(filterString, allNotebooks)
+    let filteredNotebooks = await getNotebooksByNameAndIDs(filterString, allNotebooks)
 
     if (shouldFilterChildren) {
         filteredNotebooks = getNotebookChildren(filteredNotebooks, allNotebooks)
@@ -48,18 +48,34 @@ export async function getFilteredNotebooks(
     return filteredNotebooks
 }
 
-function getNotebooksByNameAndIDs(
+async function getNotebooksByNameAndIDs(
   filterText: string,
   allNotebooks: Notebook[]
-): Notebook[] {
-    // TODO: currently only gets by name, not IDs
+): Promise<Notebook[]> {
+    let filteredNotebooks = []
 
-    let filteredNotebooks: Notebook[] = []
+    for (const text of filterText.split(",")) {
+        // wrapped in try block because Joplin will throw an error if the query ID isn't in the right format
+        try {
+            let notebook = await joplin.data.get(
+              ["folders", text], {
+                  fields: ["id", "title", "parent_id"],
+                  page: 1,
+              });
 
-    for (let text of filterText.split(",")) {
-        let notebooks = allNotebooks
-          .filter(anb => anb.title == text)
-        filteredNotebooks.push(...notebooks)
+            if (notebook) {
+                filteredNotebooks.push(notebook)
+            } else {
+                // noinspection ExceptionCaughtLocallyJS
+                throw new Error("good format but no search results")
+            }
+        } catch {
+            // if we didn't find a notebook, it's not an ID, so we do a name search instead
+            const notebooks = allNotebooks
+              .filter(nb => nb.title == text)
+
+            filteredNotebooks.push(...notebooks)
+        }
     }
 
     return filteredNotebooks
