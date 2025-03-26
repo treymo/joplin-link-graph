@@ -24,7 +24,7 @@ export async function getNotebooks(): Promise<Array<Notebook>> {
 /**
  * Get notebooks according to given parameters
  *
- * @param filterString comma separated string of notebook names to add to filter
+ * @param filterString comma separated string of notebook names/IDs to add to filter
  * @param shouldFilterChildren boolean toggle to also add children of filtered notebooks to filter
  * @param isIncludeFilter boolean toggle to invert selected notebooks
  */
