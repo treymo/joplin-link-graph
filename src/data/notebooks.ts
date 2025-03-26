@@ -52,23 +52,29 @@ async function getNotebooksByNameAndIDs(
   filterText: string,
   allNotebooks: Notebook[]
 ): Promise<Notebook[]> {
-    let filteredNotebooks: Notebook[] = []
+    let filteredNotebooks = []
 
     for (const text of filterText.split(",")) {
-        let notebooks = await joplin.data.get(
-          ["folders", text], {
-              fields: ["id", "title", "parent_id"],
-              page: 1,
-          });
+        // wrapped in try block because Joplin will throw an error if the query ID isn't in the right format
+        try {
+            let notebook = await joplin.data.get(
+              ["folders", text], {
+                  fields: ["id", "title", "parent_id"],
+                  page: 1,
+              });
 
-        if (notebooks) {
-            filteredNotebooks.push(notebooks)
-        } else {
+            if (notebook) {
+                filteredNotebooks.push(notebook)
+            } else {
+                // noinspection ExceptionCaughtLocallyJS
+                throw new Error("good format but no search results")
+            }
+        } catch {
             // if we didn't find a notebook, it's not an ID, so we do a name search instead
-            notebooks = allNotebooks
+            const notebooks = allNotebooks
               .filter(nb => nb.title == text)
 
-            filteredNotebooks.push(...notebooks.items)
+            filteredNotebooks.push(...notebooks)
         }
     }
 
