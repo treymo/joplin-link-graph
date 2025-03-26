@@ -61,13 +61,15 @@ async function getNotebooksByNameAndIDs(
               page: 1,
           });
 
-        // if we didn't find exactly one notebook, it's not an ID, so we do a name search instead
-        if (notebooks.length != 1) {
+        if (notebooks) {
+            filteredNotebooks.push(notebooks)
+        } else {
+            // if we didn't find a notebook, it's not an ID, so we do a name search instead
             notebooks = allNotebooks
               .filter(nb => nb.title == text)
-        }
 
-        filteredNotebooks.push(...notebooks)
+            filteredNotebooks.push(...notebooks.items)
+        }
     }
 
     return filteredNotebooks
