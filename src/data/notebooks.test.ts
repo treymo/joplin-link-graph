@@ -1,9 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  getFilteredNotebooks,
   getNotebookChildren,
   getNotebooksByNameAndIDs,
   invertNotebookSelection,
 } from "./notebooks";
+import joplin from "api";
 import { Notebook } from "./types";
 
 function notebook(id: string, parent_id = ""): Notebook {
@@ -39,6 +41,21 @@ describe("getNotebooksByNameAndIDs", () => {
 
   it("matches nothing when no title matches", () => {
     expect(getNotebooksByNameAndIDs("Nowhere", all)).toEqual([]);
+  });
+
+  it("ignores the space after a comma", () => {
+    expect(ids(getNotebooksByNameAndIDs("Work, Personal", all))).toEqual([
+      "Personal",
+      "Work",
+    ]);
+  });
+
+  it("matches nothing for an empty filter string", () => {
+    expect(getNotebooksByNameAndIDs("", all)).toEqual([]);
+  });
+
+  it("matches nothing for a filter string of separators", () => {
+    expect(getNotebooksByNameAndIDs(" , , ", all)).toEqual([]);
   });
 });
 
@@ -95,5 +112,37 @@ describe("invertNotebookSelection", () => {
   it("returns nothing when everything is selected", () => {
     const all = [notebook("Work"), notebook("Personal")];
     expect(invertNotebookSelection(all, all)).toEqual([]);
+  });
+});
+
+describe("getFilteredNotebooks", () => {
+  const all = [notebook("Work"), notebook("Personal"), notebook("Archive")];
+
+  beforeEach(() => {
+    vi.mocked(joplin.data.get).mockReset();
+    vi.mocked(joplin.data.get).mockResolvedValue({
+      items: all,
+      has_more: false,
+    });
+  });
+
+  it("filters nothing when the filter string is empty in exclude mode", async () => {
+    expect(await getFilteredNotebooks("", false, false)).toEqual([]);
+  });
+
+  it("filters nothing when the filter string is empty in include mode", async () => {
+    // Inverting an empty selection would name every notebook, and the caller
+    // treats the result as notebooks to exclude, so the graph would be empty.
+    expect(await getFilteredNotebooks("", false, true)).toEqual([]);
+  });
+
+  it("excludes the named notebook in exclude mode", async () => {
+    const got = await getFilteredNotebooks("Work", false, false);
+    expect(got.map((n) => n.id)).toEqual(["Work"]);
+  });
+
+  it("excludes everything but the named notebook in include mode", async () => {
+    const got = await getFilteredNotebooks("Work", false, true);
+    expect(got.map((n) => n.id).sort()).toEqual(["Archive", "Personal"]);
   });
 });
