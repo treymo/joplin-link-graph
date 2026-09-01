@@ -2,6 +2,7 @@ import joplin from "api";
 import { registerSettings } from "./settings";
 import { MenuItemLocation, ToolbarButtonLocation } from "api/types";
 import { getNotes, getAllLinksForNote, getNoteTags } from "./data/data";
+import { linksChanged } from "./data/utils";
 var deepEqual = require("fast-deep-equal");
 
 interface Edge {
@@ -125,10 +126,9 @@ joplin.plugins.register({
         dataChanged = true;
       } else {
         if (eventName === "noteChange") {
-          // Don't update the graph is the links in this note haven't changed.
           const selectedNote = await joplin.workspace.selectedNote();
           var noteLinks = getAllLinksForNote(selectedNote.body);
-          if (!deepEqual(noteLinks, prevNoteLinks)) {
+          if (linksChanged(prevNoteLinks, noteLinks)) {
             prevNoteLinks = noteLinks;
             dataChanged = true;
           }
