@@ -3,7 +3,9 @@
 Link Graph UI draws a force-directed graph of the links between Joplin notes.
 Nodes are notes, and edges are the links between them.
 
-Joplin 2.13 or later runs the plugin.
+Joplin 2.13 or later runs the plugin on the desktop, and Joplin 3.0.3 or
+later runs it on mobile. An Android emulator running Joplin 3.6.22 verified
+the mobile panel. No iOS test has run.
 
 ![The graph of a whole vault, drawn with Max. distance at 0](docs/screenshots/whole-vault-graph.png)
 

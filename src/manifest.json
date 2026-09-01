@@ -2,6 +2,8 @@
 	"manifest_version": 1,
 	"id": "io.treymo.LinkGraph",
 	"app_min_version": "2.13",
+	"app_min_version_mobile": "3.0.3",
+	"platforms": ["desktop", "mobile"],
 	"version": "1.6.0",
 	"name": "Link Graph UI",
 	"description": "Visualize the connections between Joplin notes.",
