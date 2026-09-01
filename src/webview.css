@@ -82,7 +82,7 @@ circle {
 }
 
 line {
-  stroke: var(--distance-remaining-primary-color);
+  stroke: var(--edge-color);
 }
 
 .adjacent-line {
@@ -119,6 +119,10 @@ text.adjacent-to-hovered {
   --distance-1-secondary-color: var(--joplin-color);
   --distance-remaining-primary-color: var(--joplin-background-color-hover3);
   --distance-remaining-secondary-color: var(--joplin-color4);
+
+  /* Joplin's background tokens sit behind text and are too close to the panel
+     background to carry a one pixel stroke. */
+  --edge-color: var(--joplin-color-faded);
 
   --hover-primary-color: #93f500;
   --hover-secondary-color: var(--joplin-color-correct);
