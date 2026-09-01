@@ -91,6 +91,15 @@ export async function registerSettings() {
       description:
         "Backlinks are links that other notes have to the selected note. Note: This setting is targeted towards selection-based graphs with degree of separation > 0.",
     },
+    SETTING_NOTE_TITLES_TO_EXCLUDE_FROM_BACKLINKS: {
+      value: "",
+      type: SettingItemType.String,
+      section: sectionName,
+      public: true,
+      label: "Note titles to exclude from backlinks",
+      description:
+        "Comma separated list of note titles. Backlinks from these notes are ignored, so a note that links to everything, such as a history log, does not pull the whole graph in. Only applies when backlinks are included.",
+    },
     SETTING_SHOW_LINK_DIRECTION: {
       value: DEFAULT_SHOW_LINK_DIRECTION,
       type: SettingItemType.Bool,

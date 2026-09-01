@@ -1,6 +1,7 @@
 import joplin from "api";
 import { JoplinNote, Note, Tag } from "./types"
 import { buildNote } from "./utils"
+import { splitFilterTerms } from "./notebooks"
 
 // Functions to do with getting notes or notes metadata goes here
 
@@ -44,12 +45,14 @@ export async function getAllNotes(
  * @param source_id ID of currently selected note, null when there is none
  * @param maxDegree maximum distance away from the current note to get notes for
  * @param includeBacklinks boolean toggle to also use backlinks to collect notes
+ * @param excludedBacklinkNoteIds ids of the notes whose backlinks are ignored
  * @param filterFunc filter function to exclude notes according to values used when it was created
  */
 export async function getLinkedNotes(
   source_id: string | null,
   maxDegree: number,
   includeBacklinks: boolean,
+  excludedBacklinkNoteIds: Set<string>,
   filterFunc: (nm: Map<string, Note>) => Map<string, Note>
 ): Promise<Map<string, Note>> {
   let pending = [];
@@ -86,7 +89,9 @@ export async function getLinkedNotes(
       if (noteMap.has(joplinNote.id)) {
         const allLinks = [
           ...note.links, // these are the forward-links
-          ...(includeBacklinks ? await getAllBacklinksForNote(note.id) : []),
+          ...(includeBacklinks
+            ? await getAllBacklinksForNote(note.id, excludedBacklinkNoteIds)
+            : []),
         ];
 
         // stash any new links for the next iteration
@@ -141,7 +146,16 @@ export function getAllLinksForNote(noteBody: string): Set<string> {
     return links;
 }
 
-export async function getAllBacklinksForNote(noteId: string) {
+/**
+ * Collects the ids of the notes linking to a given note.
+ *
+ * @param noteId id of the note to collect links to
+ * @param excludedNoteIds ids of the notes whose links to it are ignored
+ */
+export async function getAllBacklinksForNote(
+  noteId: string,
+  excludedNoteIds: Set<string>
+) {
     const links: string[] = [];
     let pageNum = 1;
     let response;
@@ -151,9 +165,45 @@ export async function getAllBacklinksForNote(noteId: string) {
             fields: ["id"],
             page: pageNum++,
         });
-        links.push(...response.items.map(({ id }) => id));
+        links.push(
+          ...response.items
+            .map(({ id }) => id)
+            .filter((id) => !excludedNoteIds.has(id))
+        );
     } while (response.has_more);
     return links;
+}
+
+/**
+ * Resolves note titles to the ids of the notes carrying them.
+ *
+ * The title is searched as a quoted phrase so that a colon in it is not read as
+ * a field query, and each hit is compared for equality because Joplin matches a
+ * title word by word: a longer title containing the searched one comes back too.
+ *
+ * @param titleFilterString comma separated string of note titles
+ */
+export async function getNoteIdsByTitle(
+  titleFilterString: string
+): Promise<Set<string>> {
+    const noteIds = new Set<string>();
+
+    for (const title of splitFilterTerms(titleFilterString)) {
+        let pageNum = 1;
+        let response;
+        do {
+            response = await joplin.data.get(["search"], {
+                query: `title:"${title}"`,
+                fields: ["id", "title"],
+                page: pageNum++,
+            });
+            response.items
+              .filter((item) => item.title === title)
+              .forEach((item) => noteIds.add(item.id));
+        } while (response.has_more);
+    }
+
+    return noteIds;
 }
 
 export async function getNoteTags(noteId: string) {
