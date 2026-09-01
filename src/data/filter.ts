@@ -45,7 +45,7 @@ export async function getFilterFunction(
  *
  * @returns a new `Map<string, Note>` according to the filtered notebooks
  */
-function filterNotesByNotebook(
+export function filterNotesByNotebook(
   noteMap: Map<string, Note>,
   excludedNotebooks: Array<Notebook>
 ): Map<string, Note> {
