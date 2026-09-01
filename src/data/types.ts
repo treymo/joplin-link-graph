@@ -21,6 +21,9 @@ export interface Note {
     distanceToCurrentNote?: number;
 }
 
+// The plugin API imports Joplin's entity types from '../../database/types', a path
+// that exists only inside the Joplin repository. JoplinNote names the four fields
+// the joplin.data.get(["notes"], ...) queries request.
 export interface JoplinNote {
     id: string;
     parent_id: string;

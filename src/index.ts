@@ -14,7 +14,7 @@ joplin.plugins.register({
   onStart: async function () {
     await registerSettings();
     const panels = joplin.views.panels;
-    const view = await (panels as any).create("note-graph-view");
+    const view = await panels.create("note-graph-view");
     await panels.setHtml(view, "Note Graph is Loading");
     var prevData = {};
     var prevNoteLinks: Set<string>;
@@ -45,8 +45,8 @@ joplin.plugins.register({
       label: "Show/Hide Graph View",
       iconName: "fas fa-sitemap",
       execute: async () => {
-        const isVisible = await (panels as any).visible(view);
-        await (panels as any).show(view, !isVisible);
+        const isVisible = await panels.visible(view);
+        await panels.show(view, !isVisible);
         if (!isVisible && refreshOwed) {
           await updateUI("showGraphUI");
         }
@@ -80,7 +80,7 @@ joplin.plugins.register({
         // A hidden panel keeps its webview mounted and sending this message, so the
         // fetch is gated on visibility here as well as in updateUI (https://github.com/laurent22/joplin/blob/v3.6.16/packages/app-desktop/gui/ResizableLayout/LayoutItemContainer.tsx#L22-L25).
         case "update":
-          if (!(await (panels as any).visible(view))) {
+          if (!(await panels.visible(view))) {
             refreshOwed = true;
             return { name: "update", data: data };
           }
@@ -104,7 +104,7 @@ joplin.plugins.register({
         return;
       }
 
-      if (!(await (panels as any).visible(view))) {
+      if (!(await panels.visible(view))) {
         refreshOwed = true;
         return;
       }
