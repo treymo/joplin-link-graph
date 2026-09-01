@@ -48,6 +48,45 @@ describe("getAllLinksForNote", () => {
   it("cannot tell a resource link from a note link", () => {
     expect(getAllLinksForNote("![shot](:/res456)")).toEqual(new Set(["res456"]));
   });
+
+  it("finds the target id of a link reference definition", () => {
+    const body = "see [Other][ref]\n\n[ref]: :/abc123";
+    expect(getAllLinksForNote(body)).toEqual(new Set(["abc123"]));
+  });
+
+  it("ignores the title trailing a link reference definition", () => {
+    expect(getAllLinksForNote('[ref]: :/abc123 "Other"')).toEqual(
+      new Set(["abc123"])
+    );
+  });
+
+  it("unwraps an angle-bracketed link reference definition", () => {
+    expect(getAllLinksForNote("[ref]: <:/abc123>")).toEqual(new Set(["abc123"]));
+  });
+
+  it("allows a link reference definition to be indented three spaces", () => {
+    expect(getAllLinksForNote("   [ref]: :/abc123")).toEqual(
+      new Set(["abc123"])
+    );
+  });
+
+  it("ignores a link reference definition pointing outside Joplin", () => {
+    expect(getAllLinksForNote("[ref]: https://example.com")).toEqual(new Set());
+  });
+
+  it("ignores a bracketed label followed by a colon mid-line", () => {
+    expect(getAllLinksForNote("prose [ref]: :/abc123")).toEqual(new Set());
+  });
+
+  it("collects both inline links and link reference definitions", () => {
+    const body = "[One](:/aaa) and [Two][ref]\n\n[ref]: :/bbb";
+    expect(getAllLinksForNote(body)).toEqual(new Set(["aaa", "bbb"]));
+  });
+
+  it("collapses an inline link and a definition naming the same note", () => {
+    const body = "[One](:/aaa) and [Again][ref]\n\n[ref]: :/aaa";
+    expect(getAllLinksForNote(body)).toEqual(new Set(["aaa"]));
+  });
 });
 
 describe("getLinkedNotes with no note selected", () => {

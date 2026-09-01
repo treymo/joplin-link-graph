@@ -130,14 +130,20 @@ export function getAllLinksForNote(noteBody: string): Set<string> {
     // TODO: needs to handle resource links vs note links. see 4. Tips note for
     // webclipper screenshot.
     // https://stackoverflow.com/questions/37462126/regex-match-markdown-link
-    const linkRegexp = /\[\]|\[.*?\]\(:\/(.*?)\)/g;
-    var match = null;
-    do {
-        match = linkRegexp.exec(noteBody);
-        if (match != null && match[1] !== undefined) {
-            links.add(match[1]);
-        }
-    } while (match != null);
+    const inlineLinkRegexp = /\[\]|\[.*?\]\(:\/(.*?)\)/g;
+    // A link reference definition, `[label]: :/id "title"`, which CommonMark
+    // lets start up to three spaces in and wrap its destination in angle
+    // brackets. https://spec.commonmark.org/0.31.2/#link-reference-definition
+    const definitionRegexp = /^ {0,3}\[[^\]]+\]:[ \t]*<?:\/([^\s<>]+)>?/gm;
+    for (const regexp of [inlineLinkRegexp, definitionRegexp]) {
+        var match = null;
+        do {
+            match = regexp.exec(noteBody);
+            if (match != null && match[1] !== undefined) {
+                links.add(match[1]);
+            }
+        } while (match != null);
+    }
     return links;
 }
 
