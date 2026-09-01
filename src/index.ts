@@ -177,6 +177,9 @@ async function fetchData() {
   const includeBacklinks = await joplin.settings.value(
     "SETTING_INCLUDE_BACKLINKS"
   );
+  const excludedBacklinkNoteTitles = await joplin.settings.value(
+    "SETTING_NOTE_TITLES_TO_EXCLUDE_FROM_BACKLINKS"
+  );
   const showLinkDirection = await joplin.settings.value(
     "SETTING_SHOW_LINK_DIRECTION"
   );
@@ -190,7 +193,8 @@ async function fetchData() {
     filteredNotebookNames,
     shouldFilterChildren,
     isIncludeFilter,
-    includeBacklinks
+    includeBacklinks,
+    excludedBacklinkNoteTitles
   );
 
   return buildGraphData(notes, selectedNoteId, {

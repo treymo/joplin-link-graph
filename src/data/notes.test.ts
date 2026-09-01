@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getAllLinksForNote, getLinkedNotes } from "./notes";
-import { Note } from "./types";
+import {
+  getAllBacklinksForNote,
+  getAllLinksForNote,
+  getLinkedNotes,
+  getNoteIdsByTitle,
+} from "./notes";
+import { JoplinNote, Note } from "./types";
 import joplin from "api";
 
 describe("getAllLinksForNote", () => {
@@ -97,12 +102,218 @@ describe("getLinkedNotes with no note selected", () => {
   });
 
   it("collects no notes", async () => {
-    const notes = await getLinkedNotes(null, 1, false, keepAll);
+    const notes = await getLinkedNotes(null, 1, false, new Set(), keepAll);
     expect(notes.size).toBe(0);
   });
 
   it("asks Joplin for nothing", async () => {
-    await getLinkedNotes(null, 1, false, keepAll);
+    await getLinkedNotes(null, 1, false, new Set(), keepAll);
     expect(joplin.data.get).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Answers a `["search"]` call with a single unpaginated page of the given items.
+ */
+function mockSearchResults(items: object[]) {
+  vi.mocked(joplin.data.get).mockResolvedValue({ items, has_more: false });
+}
+
+describe("getNoteIdsByTitle", () => {
+  beforeEach(() => {
+    vi.mocked(joplin.data.get).mockReset();
+  });
+
+  it("resolves a listed title to the id of the note carrying it", async () => {
+    mockSearchResults([{ id: "hist", title: "History" }]);
+    expect(await getNoteIdsByTitle("History")).toEqual(new Set(["hist"]));
+  });
+
+  it("asks Joplin for the title as a quoted phrase", async () => {
+    mockSearchResults([]);
+    await getNoteIdsByTitle("Daily Log");
+    expect(joplin.data.get).toHaveBeenCalledWith(
+      ["search"],
+      expect.objectContaining({ query: 'title:"Daily Log"' })
+    );
+  });
+
+  it("drops a note whose title merely starts with the listed title", async () => {
+    mockSearchResults([
+      { id: "hist", title: "History" },
+      { id: "rome", title: "History of Rome" },
+    ]);
+    expect(await getNoteIdsByTitle("History")).toEqual(new Set(["hist"]));
+  });
+
+  it("resolves every title in a comma separated list", async () => {
+    vi.mocked(joplin.data.get)
+      .mockResolvedValueOnce({
+        items: [{ id: "hist", title: "History" }],
+        has_more: false,
+      })
+      .mockResolvedValueOnce({
+        items: [{ id: "log", title: "Daily Log" }],
+        has_more: false,
+      });
+    expect(await getNoteIdsByTitle("History, Daily Log")).toEqual(
+      new Set(["hist", "log"])
+    );
+    expect(joplin.data.get).toHaveBeenCalledTimes(2);
+  });
+
+  it("returns the ids of every note sharing a listed title", async () => {
+    mockSearchResults([
+      { id: "hist1", title: "History" },
+      { id: "hist2", title: "History" },
+    ]);
+    expect(await getNoteIdsByTitle("History")).toEqual(
+      new Set(["hist1", "hist2"])
+    );
+  });
+
+  it("returns an empty set when a listed title matches no note", async () => {
+    mockSearchResults([]);
+    expect(await getNoteIdsByTitle("History")).toEqual(new Set());
+  });
+
+  it("asks Joplin for nothing when the setting is empty", async () => {
+    expect(await getNoteIdsByTitle("")).toEqual(new Set());
+    expect(joplin.data.get).not.toHaveBeenCalled();
+  });
+
+  it("asks Joplin for nothing when the setting holds only separators", async () => {
+    expect(await getNoteIdsByTitle(" , , ")).toEqual(new Set());
+    expect(joplin.data.get).not.toHaveBeenCalled();
+  });
+
+  it("collects ids from every page the search reports", async () => {
+    vi.mocked(joplin.data.get)
+      .mockResolvedValueOnce({
+        items: [{ id: "hist1", title: "History" }],
+        has_more: true,
+      })
+      .mockResolvedValueOnce({
+        items: [{ id: "hist2", title: "History" }],
+        has_more: false,
+      });
+    expect(await getNoteIdsByTitle("History")).toEqual(
+      new Set(["hist1", "hist2"])
+    );
+  });
+});
+
+describe("getAllBacklinksForNote", () => {
+  beforeEach(() => {
+    vi.mocked(joplin.data.get).mockReset();
+  });
+
+  it("returns the ids of the notes the search reports", async () => {
+    mockSearchResults([{ id: "a" }, { id: "b" }]);
+    expect(await getAllBacklinksForNote("target", new Set())).toEqual([
+      "a",
+      "b",
+    ]);
+  });
+
+  it("drops an excluded id", async () => {
+    mockSearchResults([{ id: "a" }, { id: "hist" }]);
+    expect(await getAllBacklinksForNote("target", new Set(["hist"]))).toEqual([
+      "a",
+    ]);
+  });
+
+  it("returns nothing when every linking note is excluded", async () => {
+    mockSearchResults([{ id: "hist" }]);
+    expect(await getAllBacklinksForNote("target", new Set(["hist"]))).toEqual(
+      []
+    );
+  });
+});
+
+describe("getLinkedNotes with excluded backlinks", () => {
+  const keepAll = (nm: Map<string, Note>) => nm;
+
+  /**
+   * Answers the two endpoints the traversal uses.
+   *
+   * @param notes notes Joplin holds
+   * @param backlinks ids of the notes linking to each note, keyed by note id
+   */
+  function mockVault(
+    notes: JoplinNote[],
+    backlinks: { [noteId: string]: string[] }
+  ) {
+    const notesById = new Map(notes.map((note) => [note.id, note]));
+    vi.mocked(joplin.data.get).mockImplementation(
+      async (path: string[], query: any) => {
+        if (path[0] === "notes") {
+          return { ...notesById.get(path[1]) };
+        }
+        return {
+          items: (backlinks[query.query] ?? []).map((id) => ({ id })),
+          has_more: false,
+        };
+      }
+    );
+  }
+
+  const note = (id: string, body = ""): JoplinNote => ({
+    id,
+    parent_id: "notebook",
+    title: id,
+    body,
+  });
+
+  beforeEach(() => {
+    vi.mocked(joplin.data.get).mockReset();
+  });
+
+  it("leaves out a note that only reaches the graph as an excluded backlink", async () => {
+    mockVault([note("selected"), note("hist", "[s](:/selected)")], {
+      selected: ["hist"],
+    });
+    const notes = await getLinkedNotes(
+      "selected",
+      1,
+      true,
+      new Set(["hist"]),
+      keepAll
+    );
+    expect([...notes.keys()]).toEqual(["selected"]);
+  });
+
+  it("keeps a note reached as a backlink when nothing is excluded", async () => {
+    mockVault([note("selected"), note("hist", "[s](:/selected)")], {
+      selected: ["hist"],
+    });
+    const notes = await getLinkedNotes("selected", 1, true, new Set(), keepAll);
+    expect([...notes.keys()].sort()).toEqual(["hist", "selected"]);
+  });
+
+  it("keeps an excluded note that a note in the graph links to", async () => {
+    mockVault([note("selected", "[h](:/hist)"), note("hist")], {});
+    const notes = await getLinkedNotes(
+      "selected",
+      1,
+      true,
+      new Set(["hist"]),
+      keepAll
+    );
+    expect([...notes.keys()].sort()).toEqual(["hist", "selected"]);
+  });
+
+  it("keeps the selected note when its own title is excluded", async () => {
+    mockVault([note("hist"), note("other", "[h](:/hist)")], {
+      hist: ["other"],
+    });
+    const notes = await getLinkedNotes(
+      "hist",
+      1,
+      true,
+      new Set(["hist"]),
+      keepAll
+    );
+    expect(notes.get("hist").distanceToCurrentNote).toBe(0);
   });
 });
