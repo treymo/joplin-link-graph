@@ -74,7 +74,7 @@ getMaxDistanceSetting().then((v) => {
   update();
 });
 
-var simulation, svg;
+var simulation, svg, zoomHandler;
 var width, height;
 var tooltip = d3
   .select("#joplin-plugin-content")
@@ -96,6 +96,10 @@ function buildGraph(data) {
     document
       .querySelector("#note_graph")
       .classList.remove("mode-selection-based-graph");
+
+  // A superseded simulation keeps its own timer, and its "end" handler would fit
+  // the panel to a layout that is no longer on screen.
+  if (simulation) simulation.stop();
 
   d3.select("#note_graph > svg").remove();
   svg = d3
@@ -152,13 +156,42 @@ function buildGraph(data) {
   }
 
   //add zoom capabilities
-  var zoom_handler = d3.zoom().scaleExtent([0.1, 10]).on("zoom", zoom_actions);
-  zoom_handler(d3.select("svg"));
+  zoomHandler = d3.zoom().scaleExtent([0.1, 10]).on("zoom", zoom_actions);
+  zoomHandler(d3.select("svg"));
 
   function zoom_actions(event) {
     svg.attr("transform", event.transform);
   }
   updateGraph(data);
+}
+
+// The force distances are pixel values tuned for a desktop side panel, so on a
+// phone panel of about 430px most nodes settle outside it. Zooming out to the
+// laid-out bounds keeps every node reachable at any panel width.
+function fitGraphToPanel(nodes) {
+  if (!nodes.length) return;
+
+  const labelAllowance = 160;
+  const minX = d3.min(nodes, (d) => d.x);
+  const maxX = d3.max(nodes, (d) => d.x) + labelAllowance;
+  const minY = d3.min(nodes, (d) => d.y);
+  const maxY = d3.max(nodes, (d) => d.y);
+  const graphWidth = maxX - minX;
+  const graphHeight = maxY - minY;
+
+  const widthScale = graphWidth > 0 ? width / graphWidth : 1;
+  const heightScale = graphHeight > 0 ? height / graphHeight : 1;
+  // zoomHandler declares scaleExtent([0.1, 10]), and zoom.transform skips that
+  // clamp, so a scale below the floor would leave the behaviour outside its own
+  // extent and jump on the next manual zoom.
+  const scale = Math.max(0.1, Math.min(1, widthScale, heightScale));
+  const translateX = width / 2 - scale * (minX + graphWidth / 2);
+  const translateY = height / 2 - scale * (minY + graphHeight / 2);
+
+  zoomHandler.transform(
+    d3.select("#note_graph > svg"),
+    d3.zoomIdentity.translate(translateX, translateY).scale(scale)
+  );
 }
 
 function updateGraph(data) {
@@ -369,6 +402,10 @@ function updateGraph(data) {
   simulation.force("link").links(data.edges);
 
   simulation.alpha(1).alphaTarget(0).restart();
+
+  simulation.on("end", function () {
+    fitGraphToPanel(data.nodes);
+  });
 
   function ticked() {
     node.attr("transform", function (d) {
