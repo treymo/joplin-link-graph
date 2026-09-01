@@ -91,6 +91,22 @@ describe("getNotebookChildren", () => {
     ]);
   });
 
+  it("adds descendants past the second generation", () => {
+    const all = [
+      notebook("Work"),
+      notebook("Projects", "Work"),
+      notebook("Alpha", "Projects"),
+      notebook("Deep", "Alpha"),
+      notebook("Personal"),
+    ];
+    expect(ids(getNotebookChildren([all[0]], all))).toEqual([
+      "Alpha",
+      "Deep",
+      "Projects",
+      "Work",
+    ]);
+  });
+
   it("does not repeat a notebook that is already selected", () => {
     const all = [notebook("Work"), notebook("Projects", "Work")];
     expect(ids(getNotebookChildren([all[0], all[1]], all))).toEqual([

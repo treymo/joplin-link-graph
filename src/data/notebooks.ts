@@ -87,30 +87,20 @@ export function getNotebookChildren(
   notebooks: Notebook[],
   allNotebooks: Notebook[]
 ): Notebook[] {
-    // for every notebook, if
-    //   - it's parent is in the filter list
-    //   - it's not in the filter list itself
-    // are both true, then it's a direct child of the filtered NBs
-    let childrenOfFilteredNBs: Notebook[] =
-      allNotebooks
-        // if the NB already exists in the filtered NB IDs, exclude it
-        .filter(anb => ! notebooks.map(nb => nb.id).includes(anb.id))
-        // if NBs parent exists in the filtered NB IDs, include it
-        .filter(anb => notebooks.map(nb => nb.id).includes(anb.parent_id))
+    const selectedIds = new Set(notebooks.map(nb => nb.id))
 
-    let lastChildren = childrenOfFilteredNBs
-    while (childrenOfFilteredNBs.length > 0) {
-        notebooks = notebooks.concat(childrenOfFilteredNBs)
+    // Each pass collects the children of the generation found by the previous
+    // one, so a notebook is reached however deeply it is nested.
+    let generation = notebooks
+    while (generation.length > 0) {
+        const parentIds = new Set(generation.map(nb => nb.id))
 
-        // fetch next set of children not in the filter list
-        childrenOfFilteredNBs =
-          allNotebooks
-            .filter(anb => ! notebooks
-              .map(nb => nb.id)
-              .includes(anb.id))
-            .filter(anb => lastChildren
-              .map(nb => nb.id)
-              .includes(anb.parent_id))
+        generation = allNotebooks
+          .filter(anb => ! selectedIds.has(anb.id))
+          .filter(anb => parentIds.has(anb.parent_id))
+
+        generation.forEach(nb => selectedIds.add(nb.id))
+        notebooks = notebooks.concat(generation)
     }
 
     return notebooks
