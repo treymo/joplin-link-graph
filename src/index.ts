@@ -2,32 +2,9 @@ import joplin from "api";
 import { registerSettings } from "./settings";
 import { MenuItemLocation, ToolbarButtonLocation } from "api/types";
 import { getNotes, getAllLinksForNote, getNoteTags } from "./data/data";
+import { linksChanged } from "./data/utils";
+import { buildGraphData, GraphData } from "./data/graph";
 var deepEqual = require("fast-deep-equal");
-
-interface Edge {
-  source: string;
-  target: string;
-  sourceDistanceToCurrentNode?: number;
-  targetDistanceToCurrentNode?: number;
-  focused: boolean;
-}
-
-interface Node {
-  id: string;
-  title: string;
-  focused: boolean;
-  distanceToCurrentNode?: number;
-}
-
-interface GraphData {
-  nodes: Node[];
-  edges: Edge[];
-  currentNoteID: string;
-  nodeFontSize: number;
-  nodeDistanceRatio: number;
-  showLinkDirection: boolean;
-  graphIsSelectionBased: boolean; // maxDegree > 0
-}
 
 let data: GraphData;
 let pollCb: any;
@@ -125,25 +102,29 @@ joplin.plugins.register({
         dataChanged = true;
       } else {
         if (eventName === "noteChange") {
-          // Don't update the graph is the links in this note haven't changed.
           const selectedNote = await joplin.workspace.selectedNote();
-          var noteLinks = getAllLinksForNote(selectedNote.body);
-          if (!deepEqual(noteLinks, prevNoteLinks)) {
+          var noteLinks = getAllLinksForNote(
+            selectedNote ? selectedNote.body : ""
+          );
+          if (linksChanged(prevNoteLinks, noteLinks)) {
             prevNoteLinks = noteLinks;
             dataChanged = true;
           }
         } else if (eventName === "noteSelectionChange" && maxDegree == 0) {
           // noteSelectionChange should just re-center the graph, no need to fetch all new data and compare.
           const newlySelectedNote = await joplin.workspace.selectedNote();
-          data.currentNoteID = newlySelectedNote.id;
+          const newlySelectedNoteId = newlySelectedNote
+            ? newlySelectedNote.id
+            : null;
+          data.currentNoteID = newlySelectedNoteId;
           data.edges.forEach((edge) => {
             const shouldHaveFocus =
-              edge.source === newlySelectedNote.id ||
-              edge.target === newlySelectedNote.id;
+              edge.source === newlySelectedNoteId ||
+              edge.target === newlySelectedNoteId;
             edge.focused = shouldHaveFocus;
           });
           data.nodes.forEach((node) => {
-            node.focused = node.id === newlySelectedNote.id;
+            node.focused = node.id === newlySelectedNoteId;
           });
           dataChanged = true;
         } else {
@@ -197,73 +178,33 @@ async function fetchData() {
   const includeBacklinks = await joplin.settings.value(
     "SETTING_INCLUDE_BACKLINKS"
   );
+  const excludedBacklinkNoteTitles = await joplin.settings.value(
+    "SETTING_NOTE_TITLES_TO_EXCLUDE_FROM_BACKLINKS"
+  );
   const showLinkDirection = await joplin.settings.value(
     "SETTING_SHOW_LINK_DIRECTION"
   );
 
   const selectedNote = await joplin.workspace.selectedNote();
+  const selectedNoteId = selectedNote ? selectedNote.id : null;
   const notes = await getNotes(
-    selectedNote.id,
+    selectedNoteId,
     maxNotes,
     maxDegree,
     notebookFilterString,
     shouldFilterChildren,
     isIncludeFilter,
-    includeBacklinks
+    includeBacklinks,
+    excludedBacklinkNoteTitles
   );
 
-  const data: GraphData = {
-    nodes: [],
-    edges: [],
-    currentNoteID: selectedNote.id,
+  return buildGraphData(notes, selectedNoteId, {
     nodeFontSize: await joplin.settings.value("SETTING_NODE_FONT_SIZE"),
     nodeDistanceRatio:
       (await joplin.settings.value("SETTING_NODE_DISTANCE")) / 100.0,
     showLinkDirection,
-    graphIsSelectionBased: maxDegree > 0
-  };
-
-  notes.forEach(function (note, id) {
-    for (let link of note.links) {
-      // Slice note link if link directs to an anchor
-      var index = link.indexOf("#");
-      if (index != -1) {
-        link = link.substr(0, index);
-      }
-
-      // The destination note could have been deleted.
-      const linkDestExists = notes.has(link);
-      if (!linkDestExists) {
-        continue;
-      }
-
-      data.edges.push({
-        source: id,
-        target: link,
-        sourceDistanceToCurrentNode: notes.get(id).distanceToCurrentNote,
-        targetDistanceToCurrentNode: notes.get(link).distanceToCurrentNote,
-        focused: id === selectedNote.id || link === selectedNote.id,
-      });
-
-      // Mark nodes that are adjacent to the currently selected note.
-      if (id === selectedNote.id) {
-        notes.get(link).linkedToCurrentNote = true;
-      } else if (link == selectedNote.id) {
-        notes.get(id).linkedToCurrentNote = true;
-      } else {
-        const l = notes.get(link);
-        l.linkedToCurrentNote = l.linkedToCurrentNote || false;
-      }
-    }
-    data.nodes.push({
-      id: id,
-      title: note.title,
-      focused: note.linkedToCurrentNote,
-      distanceToCurrentNode: note.distanceToCurrentNote
-    });
+    graphIsSelectionBased: maxDegree > 0,
   });
-
-  return data;
 }
 
 // rendez-vous between worker and job queue

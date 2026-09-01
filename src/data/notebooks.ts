@@ -1,4 +1,4 @@
-import joplin from "../../api";
+import joplin from "api";
 import { Notebook } from "./types";
 
 // Functions to do with notebooks or notebooks metadata goes here
@@ -24,7 +24,7 @@ export async function getNotebooks(): Promise<Array<Notebook>> {
 /**
  * Get notebooks according to given parameters
  *
- * @param filterString comma separated string of notebook names/IDs to add to filter
+ * @param filterString comma separated string of notebook names and ids to add to filter
  * @param shouldFilterChildren boolean toggle to also add children of filtered notebooks to filter
  * @param isIncludeFilter boolean toggle to invert selected notebooks
  */
@@ -33,9 +33,15 @@ export async function getFilteredNotebooks(
   shouldFilterChildren: boolean,
   isIncludeFilter: boolean
 ): Promise<Notebook[]> {
+    // An empty setting names no notebooks. Inverting that would name every
+    // notebook, and the caller excludes whatever it is given.
+    if (splitFilterTerms(filterString).length === 0) {
+        return []
+    }
+
     const allNotebooks = await getNotebooks()
 
-    let filteredNotebooks = await getNotebooksByNameAndIDs(filterString, allNotebooks)
+    let filteredNotebooks = getNotebooksByNameAndIDs(filterString, allNotebooks)
 
     if (shouldFilterChildren) {
         filteredNotebooks = getNotebookChildren(filteredNotebooks, allNotebooks)
@@ -48,73 +54,65 @@ export async function getFilteredNotebooks(
     return filteredNotebooks
 }
 
-async function getNotebooksByNameAndIDs(
+export function getNotebooksByNameAndIDs(
   filterText: string,
   allNotebooks: Notebook[]
-): Promise<Notebook[]> {
-    let filteredNotebooks = []
+): Notebook[] {
+    let filteredNotebooks: Notebook[] = []
 
-    for (const text of filterText.split(",")) {
-        // wrapped in try block because Joplin will throw an error if the query ID isn't in the right format
-        try {
-            let notebook = await joplin.data.get(
-              ["folders", text], {
-                  fields: ["id", "title", "parent_id"],
-                  page: 1,
-              });
-
-            if (notebook) {
-                filteredNotebooks.push(notebook)
-            } else {
-                // noinspection ExceptionCaughtLocallyJS
-                throw new Error("good format but no search results")
-            }
-        } catch {
-            // if we didn't find a notebook, it's not an ID, so we do a name search instead
-            const notebooks = allNotebooks
-              .filter(nb => nb.title == text)
-
-            filteredNotebooks.push(...notebooks)
+    for (let text of splitFilterTerms(filterText)) {
+        // An id names one notebook, so a term matching one is taken as an id
+        // and never also matched against titles.
+        const notebookWithId = allNotebooks.find(anb => anb.id == text)
+        if (notebookWithId) {
+            filteredNotebooks.push(notebookWithId)
+            continue
         }
+
+        let notebooks = allNotebooks
+          .filter(anb => anb.title == text)
+        filteredNotebooks.push(...notebooks)
     }
 
     return filteredNotebooks
 }
 
-function getNotebookChildren(
+/**
+ * Splits the notebook filter setting into the names and ids it holds.
+ *
+ * @param filterText the raw setting value
+ */
+export function splitFilterTerms(filterText: string): string[] {
+    return filterText
+      .split(",")
+      .map(term => term.trim())
+      .filter(term => term !== "")
+}
+
+export function getNotebookChildren(
   notebooks: Notebook[],
   allNotebooks: Notebook[]
 ): Notebook[] {
-    // for every notebook, if
-    //   - it's parent is in the filter list
-    //   - it's not in the filter list itself
-    // are both true, then it's a direct child of the filtered NBs
-    let childrenOfFilteredNBs: Notebook[] =
-      allNotebooks
-        // if the NB already exists in the filtered NB IDs, exclude it
-        .filter(anb => ! notebooks.map(nb => nb.id).includes(anb.id))
-        // if NBs parent exists in the filtered NB IDs, include it
-        .filter(anb => notebooks.map(nb => nb.id).includes(anb.parent_id))
+    const selectedIds = new Set(notebooks.map(nb => nb.id))
 
-    let lastChildren = childrenOfFilteredNBs
-    while (childrenOfFilteredNBs.length > 0) {
-        notebooks = notebooks.concat(childrenOfFilteredNBs)
+    // Each pass collects the children of the generation found by the previous
+    // one, so a notebook is reached however deeply it is nested.
+    let generation = notebooks
+    while (generation.length > 0) {
+        const parentIds = new Set(generation.map(nb => nb.id))
 
-        // fetch next set of children not in the filter list
-        childrenOfFilteredNBs =
-          allNotebooks
-            .filter(anb => ! notebooks
-              .map(nb => nb.id)
-              .includes(anb.id))
-            .filter(anb => lastChildren
-              .map(nb => nb.id)
-              .includes(anb.parent_id))
+        generation = allNotebooks
+          .filter(anb => ! selectedIds.has(anb.id))
+          .filter(anb => parentIds.has(anb.parent_id))
+
+        generation.forEach(nb => selectedIds.add(nb.id))
+        notebooks = notebooks.concat(generation)
     }
 
     return notebooks
 }
 
-function invertNotebookSelection(
+export function invertNotebookSelection(
   notebooks: Notebook[],
   allNotebooks: Notebook[]
 ): Notebook[] {
