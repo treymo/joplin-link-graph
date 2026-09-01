@@ -25,6 +25,38 @@ function notesPage(...titles: string[]) {
   };
 }
 
+function pageWhereAlinksToB() {
+  const page = notesPage("A", "B");
+  page.items[0].body = "[B](:/note-1)";
+  return page;
+}
+
+function noteALinkingToB() {
+  return { id: "note-0", body: "[B](:/note-1)" };
+}
+
+function pageWhereAlinksToAnAbsentNote() {
+  const page = notesPage("A");
+  page.items[0].body = "[Gone](:/note-9)";
+  return page;
+}
+
+const LINKED_NOTE_BODIES = {
+  "note-0": "[X](:/note-2)",
+  "note-1": "[Y](:/note-3)",
+  "note-2": "",
+  "note-3": "",
+};
+
+function linkedNote(id: string) {
+  return {
+    id: id,
+    parent_id: "notebook",
+    title: id,
+    body: LINKED_NOTE_BODIES[id],
+  };
+}
+
 // The workspace and settings handlers call updateUI without awaiting it, so a
 // test has to let the pending promise chain drain before asserting.
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -144,5 +176,146 @@ describe("the update message", () => {
     await stub.captured.commands.get("showHideGraphUI").execute();
 
     expect(stub.default.data.get).toHaveBeenCalled();
+  });
+});
+
+describe("a note whose links are unchanged", () => {
+  it("skips the update when the newly selected note's links are unchanged", async () => {
+    const stub = await startPlugin();
+    vi.mocked(stub.default.data.get).mockImplementation(async () =>
+      pageWhereAlinksToB()
+    );
+    vi.mocked(stub.default.workspace.selectedNote).mockResolvedValue(
+      noteALinkingToB()
+    );
+    stub.captured.workspaceHandlers.syncComplete();
+    await flush();
+    await stub.captured.panelMessageHandler({ name: "poll" });
+
+    vi.mocked(stub.default.workspace.selectedNote).mockResolvedValue({
+      id: "note-1",
+      body: "",
+    });
+    stub.captured.workspaceHandlers.noteSelectionChange();
+    await flush();
+    await stub.captured.panelMessageHandler({ name: "poll" });
+
+    // A poll left unresolved is how a test observes that nothing was pushed to
+    // the webview.
+    let modelChange;
+    stub.captured
+      .panelMessageHandler({ name: "poll" })
+      .then((change) => (modelChange = change));
+    stub.captured.workspaceHandlers.noteChange();
+    await flush();
+
+    expect(modelChange).toBeUndefined();
+  });
+
+  it("reads no notes after a selection change in selection-based mode", async () => {
+    const stub = await startPlugin();
+    vi.mocked(stub.default.settings.value).mockImplementation(
+      async (key: string) =>
+        key === "SETTING_MAX_SEPARATION_DEGREE" ? 2 : SETTINGS[key]
+    );
+    vi.mocked(stub.default.data.get).mockImplementation(async (path) =>
+      linkedNote(path[1])
+    );
+    vi.mocked(stub.default.workspace.selectedNote).mockResolvedValue(
+      linkedNote("note-0")
+    );
+    stub.captured.workspaceHandlers.syncComplete();
+    await flush();
+    await stub.captured.panelMessageHandler({ name: "poll" });
+
+    vi.mocked(stub.default.workspace.selectedNote).mockResolvedValue(
+      linkedNote("note-1")
+    );
+    stub.captured.workspaceHandlers.noteSelectionChange();
+    await flush();
+    await stub.captured.panelMessageHandler({ name: "poll" });
+    vi.mocked(stub.default.data.get).mockClear();
+
+    stub.captured.workspaceHandlers.noteChange();
+    await flush();
+
+    expect(stub.default.data.get).not.toHaveBeenCalled();
+  });
+
+  it("reads no notes on the first note change after startup", async () => {
+    const stub = await startPlugin();
+    vi.mocked(stub.default.data.get).mockImplementation(async () =>
+      pageWhereAlinksToB()
+    );
+    vi.mocked(stub.default.workspace.selectedNote).mockResolvedValue(
+      noteALinkingToB()
+    );
+    stub.captured.workspaceHandlers.syncComplete();
+    await flush();
+    await stub.captured.panelMessageHandler({ name: "poll" });
+    vi.mocked(stub.default.data.get).mockClear();
+
+    let modelChange;
+    stub.captured
+      .panelMessageHandler({ name: "poll" })
+      .then((change) => (modelChange = change));
+    stub.captured.workspaceHandlers.noteChange();
+    await flush();
+
+    expect(stub.default.data.get).not.toHaveBeenCalled();
+    expect(modelChange).toBeUndefined();
+  });
+});
+
+describe("a note gaining a link", () => {
+  it("hands the webview a payload carrying the new edge", async () => {
+    const stub = await startPlugin();
+    stub.captured.workspaceHandlers.syncComplete();
+    await flush();
+    await stub.captured.panelMessageHandler({ name: "poll" });
+
+    vi.mocked(stub.default.data.get).mockImplementation(async () =>
+      pageWhereAlinksToB()
+    );
+    vi.mocked(stub.default.workspace.selectedNote).mockResolvedValue(
+      noteALinkingToB()
+    );
+    const pendingPoll = stub.captured.panelMessageHandler({ name: "poll" });
+    stub.captured.workspaceHandlers.noteChange();
+    const modelChange = await pendingPoll;
+
+    expect(
+      modelChange.data.edges.map((edge) => [edge.source, edge.target])
+    ).toEqual([["note-0", "note-1"]]);
+  });
+
+  it("pushes no update when the link points outside the graph", async () => {
+    const stub = await startPlugin();
+    vi.mocked(stub.default.data.get).mockImplementation(async () =>
+      notesPage("A")
+    );
+    vi.mocked(stub.default.workspace.selectedNote).mockResolvedValue({
+      id: "note-0",
+      body: "",
+    });
+    stub.captured.workspaceHandlers.syncComplete();
+    await flush();
+    await stub.captured.panelMessageHandler({ name: "poll" });
+
+    vi.mocked(stub.default.data.get).mockImplementation(async () =>
+      pageWhereAlinksToAnAbsentNote()
+    );
+    vi.mocked(stub.default.workspace.selectedNote).mockResolvedValue({
+      id: "note-0",
+      body: "[Gone](:/note-9)",
+    });
+    let modelChange;
+    stub.captured
+      .panelMessageHandler({ name: "poll" })
+      .then((change) => (modelChange = change));
+    stub.captured.workspaceHandlers.noteChange();
+    await flush();
+
+    expect(modelChange).toBeUndefined();
   });
 });
