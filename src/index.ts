@@ -3,32 +3,8 @@ import { registerSettings } from "./settings";
 import { MenuItemLocation, ToolbarButtonLocation } from "api/types";
 import { getNotes, getAllLinksForNote, getNoteTags } from "./data/data";
 import { linksChanged } from "./data/utils";
+import { buildGraphData, GraphData } from "./data/graph";
 var deepEqual = require("fast-deep-equal");
-
-interface Edge {
-  source: string;
-  target: string;
-  sourceDistanceToCurrentNode?: number;
-  targetDistanceToCurrentNode?: number;
-  focused: boolean;
-}
-
-interface Node {
-  id: string;
-  title: string;
-  focused: boolean;
-  distanceToCurrentNode?: number;
-}
-
-interface GraphData {
-  nodes: Node[];
-  edges: Edge[];
-  currentNoteID: string;
-  nodeFontSize: number;
-  nodeDistanceRatio: number;
-  showLinkDirection: boolean;
-  graphIsSelectionBased: boolean; // maxDegree > 0
-}
 
 let data: GraphData;
 let pollCb: any;
@@ -211,58 +187,13 @@ async function fetchData() {
     includeBacklinks
   );
 
-  const data: GraphData = {
-    nodes: [],
-    edges: [],
-    currentNoteID: selectedNote.id,
+  return buildGraphData(notes, selectedNote.id, {
     nodeFontSize: await joplin.settings.value("SETTING_NODE_FONT_SIZE"),
     nodeDistanceRatio:
       (await joplin.settings.value("SETTING_NODE_DISTANCE")) / 100.0,
     showLinkDirection,
-    graphIsSelectionBased: maxDegree > 0
-  };
-
-  notes.forEach(function (note, id) {
-    for (let link of note.links) {
-      // Slice note link if link directs to an anchor
-      var index = link.indexOf("#");
-      if (index != -1) {
-        link = link.substr(0, index);
-      }
-
-      // The destination note could have been deleted.
-      const linkDestExists = notes.has(link);
-      if (!linkDestExists) {
-        continue;
-      }
-
-      data.edges.push({
-        source: id,
-        target: link,
-        sourceDistanceToCurrentNode: notes.get(id).distanceToCurrentNote,
-        targetDistanceToCurrentNode: notes.get(link).distanceToCurrentNote,
-        focused: id === selectedNote.id || link === selectedNote.id,
-      });
-
-      // Mark nodes that are adjacent to the currently selected note.
-      if (id === selectedNote.id) {
-        notes.get(link).linkedToCurrentNote = true;
-      } else if (link == selectedNote.id) {
-        notes.get(id).linkedToCurrentNote = true;
-      } else {
-        const l = notes.get(link);
-        l.linkedToCurrentNote = l.linkedToCurrentNote || false;
-      }
-    }
-    data.nodes.push({
-      id: id,
-      title: note.title,
-      focused: note.linkedToCurrentNote,
-      distanceToCurrentNode: note.distanceToCurrentNote
-    });
+    graphIsSelectionBased: maxDegree > 0,
   });
-
-  return data;
 }
 
 // rendez-vous between worker and job queue
