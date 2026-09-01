@@ -1,5 +1,7 @@
-import { describe, expect, it } from "vitest";
-import { getAllLinksForNote } from "./notes";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { getAllLinksForNote, getLinkedNotes } from "./notes";
+import { Note } from "./types";
+import joplin from "api";
 
 describe("getAllLinksForNote", () => {
   it("finds the target id of a markdown link", () => {
@@ -45,5 +47,23 @@ describe("getAllLinksForNote", () => {
 
   it("cannot tell a resource link from a note link", () => {
     expect(getAllLinksForNote("![shot](:/res456)")).toEqual(new Set(["res456"]));
+  });
+});
+
+describe("getLinkedNotes with no note selected", () => {
+  const keepAll = (nm: Map<string, Note>) => nm;
+
+  beforeEach(() => {
+    vi.mocked(joplin.data.get).mockReset();
+  });
+
+  it("collects no notes", async () => {
+    const notes = await getLinkedNotes(null, 1, false, keepAll);
+    expect(notes.size).toBe(0);
+  });
+
+  it("asks Joplin for nothing", async () => {
+    await getLinkedNotes(null, 1, false, keepAll);
+    expect(joplin.data.get).not.toHaveBeenCalled();
   });
 });

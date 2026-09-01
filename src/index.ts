@@ -103,7 +103,9 @@ joplin.plugins.register({
       } else {
         if (eventName === "noteChange") {
           const selectedNote = await joplin.workspace.selectedNote();
-          var noteLinks = getAllLinksForNote(selectedNote.body);
+          var noteLinks = getAllLinksForNote(
+            selectedNote ? selectedNote.body : ""
+          );
           if (linksChanged(prevNoteLinks, noteLinks)) {
             prevNoteLinks = noteLinks;
             dataChanged = true;
@@ -111,15 +113,18 @@ joplin.plugins.register({
         } else if (eventName === "noteSelectionChange" && maxDegree == 0) {
           // noteSelectionChange should just re-center the graph, no need to fetch all new data and compare.
           const newlySelectedNote = await joplin.workspace.selectedNote();
-          data.currentNoteID = newlySelectedNote.id;
+          const newlySelectedNoteId = newlySelectedNote
+            ? newlySelectedNote.id
+            : null;
+          data.currentNoteID = newlySelectedNoteId;
           data.edges.forEach((edge) => {
             const shouldHaveFocus =
-              edge.source === newlySelectedNote.id ||
-              edge.target === newlySelectedNote.id;
+              edge.source === newlySelectedNoteId ||
+              edge.target === newlySelectedNoteId;
             edge.focused = shouldHaveFocus;
           });
           data.nodes.forEach((node) => {
-            node.focused = node.id === newlySelectedNote.id;
+            node.focused = node.id === newlySelectedNoteId;
           });
           dataChanged = true;
         } else {
@@ -177,8 +182,9 @@ async function fetchData() {
   );
 
   const selectedNote = await joplin.workspace.selectedNote();
+  const selectedNoteId = selectedNote ? selectedNote.id : null;
   const notes = await getNotes(
-    selectedNote.id,
+    selectedNoteId,
     maxNotes,
     maxDegree,
     filteredNotebookNames,
@@ -187,7 +193,7 @@ async function fetchData() {
     includeBacklinks
   );
 
-  return buildGraphData(notes, selectedNote.id, {
+  return buildGraphData(notes, selectedNoteId, {
     nodeFontSize: await joplin.settings.value("SETTING_NODE_FONT_SIZE"),
     nodeDistanceRatio:
       (await joplin.settings.value("SETTING_NODE_DISTANCE")) / 100.0,
