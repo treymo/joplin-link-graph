@@ -24,7 +24,7 @@ export async function getNotebooks(): Promise<Array<Notebook>> {
 /**
  * Get notebooks according to given parameters
  *
- * @param filterString comma separated string of notebook names to add to filter
+ * @param filterString comma separated string of notebook names and ids to add to filter
  * @param shouldFilterChildren boolean toggle to also add children of filtered notebooks to filter
  * @param isIncludeFilter boolean toggle to invert selected notebooks
  */
@@ -58,11 +58,17 @@ export function getNotebooksByNameAndIDs(
   filterText: string,
   allNotebooks: Notebook[]
 ): Notebook[] {
-    // TODO: currently only gets by name, not IDs
-
     let filteredNotebooks: Notebook[] = []
 
     for (let text of splitFilterTerms(filterText)) {
+        // An id names one notebook, so a term matching one is taken as an id
+        // and never also matched against titles.
+        const notebookWithId = allNotebooks.find(anb => anb.id == text)
+        if (notebookWithId) {
+            filteredNotebooks.push(notebookWithId)
+            continue
+        }
+
         let notebooks = allNotebooks
           .filter(anb => anb.title == text)
         filteredNotebooks.push(...notebooks)
@@ -72,7 +78,7 @@ export function getNotebooksByNameAndIDs(
 }
 
 /**
- * Splits the notebook filter setting into the names it holds.
+ * Splits the notebook filter setting into the names and ids it holds.
  *
  * @param filterText the raw setting value
  */

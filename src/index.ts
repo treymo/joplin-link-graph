@@ -165,7 +165,8 @@ async function fetchData() {
     "SETTING_MAX_SEPARATION_DEGREE"
   );
   const maxNotes = await joplin.settings.value("SETTING_MAX_NODES");
-  const filteredNotebookNames = await joplin.settings.value(
+  const notebookFilterString = await joplin.settings.value(
+    // settings key name can't be updated without users losing their current settings
     "SETTING_NOTEBOOK_NAMES_TO_FILTER"
   );
   const shouldFilterChildren = await joplin.settings.value(
@@ -190,7 +191,7 @@ async function fetchData() {
     selectedNoteId,
     maxNotes,
     maxDegree,
-    filteredNotebookNames,
+    notebookFilterString,
     shouldFilterChildren,
     isIncludeFilter,
     includeBacklinks,

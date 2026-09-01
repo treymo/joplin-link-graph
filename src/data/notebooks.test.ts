@@ -57,6 +57,32 @@ describe("getNotebooksByNameAndIDs", () => {
   it("matches nothing for a filter string of separators", () => {
     expect(getNotebooksByNameAndIDs(" , , ", all)).toEqual([]);
   });
+
+  it("matches a notebook by its id", () => {
+    const byId = [{ id: "a1b2c3", title: "Work", parent_id: "" }];
+    expect(ids(getNotebooksByNameAndIDs("a1b2c3", byId))).toEqual(["a1b2c3"]);
+  });
+
+  it("matches a list mixing an id and a title", () => {
+    const mixed = [
+      { id: "a1b2c3", title: "Work", parent_id: "" },
+      { id: "d4e5f6", title: "Personal", parent_id: "" },
+    ];
+    expect(ids(getNotebooksByNameAndIDs("a1b2c3,Personal", mixed))).toEqual([
+      "a1b2c3",
+      "d4e5f6",
+    ]);
+  });
+
+  it("matches the id rather than a notebook titled with that id", () => {
+    const collision = [
+      { id: "a1b2c3", title: "Work", parent_id: "" },
+      { id: "d4e5f6", title: "a1b2c3", parent_id: "" },
+    ];
+    expect(ids(getNotebooksByNameAndIDs("a1b2c3", collision))).toEqual([
+      "a1b2c3",
+    ]);
+  });
 });
 
 describe("getNotebookChildren", () => {

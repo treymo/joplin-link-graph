@@ -6,7 +6,7 @@ import { getFilteredNotebooks } from "./notebooks";
 /**
  * Takes all note filter parameters and returns a simplified function that filters a Map of notes
  *
- * @param notebookFilterString comma separated string of notebooks to ***exclude***, values should be names
+ * @param notebookFilterString comma separated string of notebooks to ***exclude***, values may be names or ids
  * @param shouldFilterChildren boolean toggle to also include notebooks that are the children of those in the filter
  * @param isIncludeFilter boolean toggle to invert selected notebooks
  *
