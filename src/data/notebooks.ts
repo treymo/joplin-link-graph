@@ -1,4 +1,4 @@
-import joplin from "../../api";
+import joplin from "api";
 import { Notebook } from "./types";
 
 // Functions to do with notebooks or notebooks metadata goes here
@@ -48,7 +48,7 @@ export async function getFilteredNotebooks(
     return filteredNotebooks
 }
 
-function getNotebooksByNameAndIDs(
+export function getNotebooksByNameAndIDs(
   filterText: string,
   allNotebooks: Notebook[]
 ): Notebook[] {
@@ -65,7 +65,7 @@ function getNotebooksByNameAndIDs(
     return filteredNotebooks
 }
 
-function getNotebookChildren(
+export function getNotebookChildren(
   notebooks: Notebook[],
   allNotebooks: Notebook[]
 ): Notebook[] {
@@ -98,7 +98,7 @@ function getNotebookChildren(
     return notebooks
 }
 
-function invertNotebookSelection(
+export function invertNotebookSelection(
   notebooks: Notebook[],
   allNotebooks: Notebook[]
 ): Notebook[] {
