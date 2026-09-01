@@ -19,6 +19,7 @@ joplin.plugins.register({
     var prevData = {};
     var prevNoteLinks: Set<string>;
     var syncOngoing = false;
+    var refreshOwed = false;
 
     async function drawPanel() {
       await panels.setHtml(
@@ -45,7 +46,10 @@ joplin.plugins.register({
       iconName: "fas fa-sitemap",
       execute: async () => {
         const isVisible = await (panels as any).visible(view);
-        (panels as any).show(view, !isVisible);
+        await (panels as any).show(view, !isVisible);
+        if (!isVisible && refreshOwed) {
+          await updateUI("showGraphUI");
+        }
       },
     });
     await joplin.views.toolbarButtons.create(
@@ -65,7 +69,7 @@ joplin.plugins.register({
     await panels.addScript(view, "./webview.css");
     await panels.addScript(view, "./ui/index.js");
 
-    panels.onMessage(view, (message: any) => {
+    panels.onMessage(view, async (message: any) => {
       switch (message.name) {
         case "poll":
           let p = new Promise((resolve) => {
@@ -73,7 +77,15 @@ joplin.plugins.register({
           });
           notifyUI();
           return p;
+        // A hidden panel keeps its webview mounted and sending this message, so the
+        // fetch is gated on visibility here as well as in updateUI (https://github.com/laurent22/joplin/blob/v3.6.16/packages/app-desktop/gui/ResizableLayout/LayoutItemContainer.tsx#L22-L25).
         case "update":
+          if (!(await (panels as any).visible(view))) {
+            refreshOwed = true;
+            return { name: "update", data: data };
+          }
+          data = await fetchData();
+          prevData = data;
           return { name: "update", data: data };
         case "navigateTo":
           joplin.commands.execute("openNote", message.id);
@@ -91,6 +103,12 @@ joplin.plugins.register({
       if (syncOngoing) {
         return;
       }
+
+      if (!(await (panels as any).visible(view))) {
+        refreshOwed = true;
+        return;
+      }
+      refreshOwed = false;
 
       const maxDegree = await joplin.settings.value(
         "SETTING_MAX_SEPARATION_DEGREE"
