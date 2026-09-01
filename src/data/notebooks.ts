@@ -33,6 +33,12 @@ export async function getFilteredNotebooks(
   shouldFilterChildren: boolean,
   isIncludeFilter: boolean
 ): Promise<Notebook[]> {
+    // An empty setting names no notebooks. Inverting that would name every
+    // notebook, and the caller excludes whatever it is given.
+    if (splitFilterTerms(filterString).length === 0) {
+        return []
+    }
+
     const allNotebooks = await getNotebooks()
 
     let filteredNotebooks = getNotebooksByNameAndIDs(filterString, allNotebooks)
@@ -56,13 +62,25 @@ export function getNotebooksByNameAndIDs(
 
     let filteredNotebooks: Notebook[] = []
 
-    for (let text of filterText.split(",")) {
+    for (let text of splitFilterTerms(filterText)) {
         let notebooks = allNotebooks
           .filter(anb => anb.title == text)
         filteredNotebooks.push(...notebooks)
     }
 
     return filteredNotebooks
+}
+
+/**
+ * Splits the notebook filter setting into the names it holds.
+ *
+ * @param filterText the raw setting value
+ */
+export function splitFilterTerms(filterText: string): string[] {
+    return filterText
+      .split(",")
+      .map(term => term.trim())
+      .filter(term => term !== "")
 }
 
 export function getNotebookChildren(
