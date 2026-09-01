@@ -113,6 +113,14 @@ joplin.plugins.register({
       const maxDegree = await joplin.settings.value(
         "SETTING_MAX_SEPARATION_DEGREE"
       );
+      const selectedNote = await joplin.workspace.selectedNote();
+      const selectedNoteLinks = getAllLinksForNote(
+        selectedNote ? selectedNote.body : ""
+      );
+      if (typeof data === "undefined" || eventName === "noteSelectionChange") {
+        prevNoteLinks = selectedNoteLinks;
+      }
+
       var dataChanged = false;
       // Speed up the inital load by skipping the eventName switch.
       if (typeof data === "undefined") {
@@ -120,20 +128,14 @@ joplin.plugins.register({
         dataChanged = true;
       } else {
         if (eventName === "noteChange") {
-          const selectedNote = await joplin.workspace.selectedNote();
-          var noteLinks = getAllLinksForNote(
-            selectedNote ? selectedNote.body : ""
-          );
-          if (linksChanged(prevNoteLinks, noteLinks)) {
-            prevNoteLinks = noteLinks;
-            dataChanged = true;
+          if (linksChanged(prevNoteLinks, selectedNoteLinks)) {
+            prevNoteLinks = selectedNoteLinks;
+            data = await fetchData();
+            dataChanged = !deepEqual(data, prevData);
           }
         } else if (eventName === "noteSelectionChange" && maxDegree == 0) {
           // noteSelectionChange should just re-center the graph, no need to fetch all new data and compare.
-          const newlySelectedNote = await joplin.workspace.selectedNote();
-          const newlySelectedNoteId = newlySelectedNote
-            ? newlySelectedNote.id
-            : null;
+          const newlySelectedNoteId = selectedNote ? selectedNote.id : null;
           data.currentNoteID = newlySelectedNoteId;
           data.edges.forEach((edge) => {
             const shouldHaveFocus =
