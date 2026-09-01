@@ -1,4 +1,5 @@
 import { ModelType } from '../../../BaseModel';
+import { RequestFile } from '../../rest/Api';
 import Plugin from '../Plugin';
 import { Path } from './types';
 /**
@@ -13,7 +14,7 @@ import { Path } from './types';
  * In general you would use the methods in this class as if you were using a REST API. There are four methods that map to GET, POST, PUT and DELETE calls.
  * And each method takes these parameters:
  *
- * * `path`: This is an array that represents the path to the resource in the form `["resouceName", "resourceId", "resourceLink"]` (eg. ["tags", ":id", "notes"]). The "resources" segment is the name of the resources you want to access (eg. "notes", "folders", etc.). If not followed by anything, it will refer to all the resources in that collection. The optional "resourceId" points to a particular resources within the collection. Finally, an optional "link" can be present, which links the resource to a collection of resources. This can be used in the API for example to retrieve all the notes associated with a tag.
+ * * `path`: This is an array that represents the path to the resource in the form `["resourceName", "resourceId", "resourceLink"]` (eg. ["tags", ":id", "notes"]). The "resources" segment is the name of the resources you want to access (eg. "notes", "folders", etc.). If not followed by anything, it will refer to all the resources in that collection. The optional "resourceId" points to a particular resources within the collection. Finally, an optional "link" can be present, which links the resource to a collection of resources. This can be used in the API for example to retrieve all the notes associated with a tag.
  * * `query`: (Optional) The query parameters. In a URL, this is the part after the question mark "?". In this case, it should be an object with key/value pairs.
  * * `data`: (Optional) Applies to PUT and POST calls only. The request body contains the data you want to create or modify, for example the content of a note or folder.
  * * `files`: (Optional) Used to create new resources and associate them with files.
@@ -45,8 +46,8 @@ export default class JoplinData {
     private serializeApiBody;
     private pathToString;
     get(path: Path, query?: any): Promise<any>;
-    post(path: Path, query?: any, body?: any, files?: any[]): Promise<any>;
-    put(path: Path, query?: any, body?: any, files?: any[]): Promise<any>;
+    post(path: Path, query?: any, body?: any, files?: RequestFile[]): Promise<any>;
+    put(path: Path, query?: any, body?: any, files?: RequestFile[]): Promise<any>;
     delete(path: Path, query?: any): Promise<any>;
     itemType(itemId: string): Promise<ModelType>;
     resourcePath(resourceId: string): Promise<string>;

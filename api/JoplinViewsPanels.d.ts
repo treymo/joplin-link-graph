@@ -1,18 +1,24 @@
-import Plugin from '../Plugin';
+import Plugin, { MessageListenerCallback } from '../Plugin';
+import { PluginStore } from '../ViewController';
 import { ViewHandle } from './types';
 /**
- * Allows creating and managing view panels. View panels currently are
- * displayed at the right of the sidebar and allows displaying any HTML
- * content (within a webview) and update it in real-time. For example it
+ * Allows creating and managing view panels. View panels allow displaying any HTML
+ * content (within a webview) and updating it in real-time. For example it
  * could be used to display a table of content for the active note, or
  * display various metadata or graph.
+ *
+ * On desktop, view panels currently are displayed at the right of the sidebar, though can
+ * be moved with "View" > "Change application layout".
+ *
+ * On mobile, view panels are shown in a tabbed dialog that can be opened using a
+ * toolbar button.
  *
  * [View the demo plugin](https://github.com/laurent22/joplin/tree/dev/packages/app-cli/tests/support/plugins/toc)
  */
 export default class JoplinViewsPanels {
     private store;
     private plugin;
-    constructor(plugin: Plugin, store: any);
+    constructor(plugin: Plugin, store: PluginStore);
     private controller;
     /**
      * Creates a new panel
@@ -45,7 +51,7 @@ export default class JoplinViewsPanels {
      * demo](https://github.com/laurent22/joplin/tree/dev/packages/app-cli/tests/support/plugins/post_messages) for more details.
      *
      */
-    onMessage(handle: ViewHandle, callback: Function): Promise<void>;
+    onMessage(handle: ViewHandle, callback: MessageListenerCallback): Promise<void>;
     /**
      * Sends a message to the webview.
      *
@@ -75,4 +81,9 @@ export default class JoplinViewsPanels {
      * Tells whether the panel is visible or not
      */
     visible(handle: ViewHandle): Promise<boolean>;
+    /**
+     * Assuming that the current panel is an editor plugin view, returns
+     * whether the editor plugin view supports editing the current note.
+     */
+    isActive(handle: ViewHandle): Promise<boolean>;
 }

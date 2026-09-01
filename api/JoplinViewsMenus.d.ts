@@ -1,14 +1,17 @@
 import { MenuItem, MenuItemLocation } from './types';
 import Plugin from '../Plugin';
+import { PluginStore } from '../ViewController';
 /**
  * Allows creating menus.
  *
  * [View the demo plugin](https://github.com/laurent22/joplin/tree/dev/packages/app-cli/tests/support/plugins/menu)
+ *
+ * <span class="platform-desktop">desktop</span>
  */
 export default class JoplinViewsMenus {
     private store;
     private plugin;
-    constructor(plugin: Plugin, store: any);
+    constructor(plugin: Plugin, store: PluginStore);
     private registerCommandAccelerators;
     /**
      * Creates a new menu from the provided menu items and place it at the given location. As of now, it is only possible to place the
