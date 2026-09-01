@@ -18,7 +18,7 @@ export interface Node {
 export interface GraphData {
   nodes: Node[];
   edges: Edge[];
-  currentNoteID: string;
+  currentNoteID: string | null;
   nodeFontSize: number;
   nodeDistanceRatio: number;
   showLinkDirection: boolean;
@@ -39,12 +39,12 @@ export interface DisplaySettings {
  * Flattens the collected notes into the node and edge lists the webview draws.
  *
  * @param notes notes to draw, keyed by id
- * @param selectedNoteId note Joplin has selected
+ * @param selectedNoteId note Joplin has selected, null when there is none
  * @param display drawing settings passed through to the webview
  */
 export function buildGraphData(
   notes: Map<string, Note>,
-  selectedNoteId: string,
+  selectedNoteId: string | null,
   display: DisplaySettings
 ): GraphData {
   const data: GraphData = {

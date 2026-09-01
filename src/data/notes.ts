@@ -41,13 +41,13 @@ export async function getAllNotes(
 /**
  * Fetch all notes linked to a given source note, up to a maximum degree of separation
  *
- * @param source_id ID of currently selected note
+ * @param source_id ID of currently selected note, null when there is none
  * @param maxDegree maximum distance away from the current note to get notes for
  * @param includeBacklinks boolean toggle to also use backlinks to collect notes
  * @param filterFunc filter function to exclude notes according to values used when it was created
  */
 export async function getLinkedNotes(
-  source_id: string,
+  source_id: string | null,
   maxDegree: number,
   includeBacklinks: boolean,
   filterFunc: (nm: Map<string, Note>) => Map<string, Note>
@@ -56,6 +56,12 @@ export async function getLinkedNotes(
   let visited = new Set();
   let noteMap = new Map();
   let degree = 0;
+
+  // A traversal outward from the selected note has nowhere to start when
+  // Joplin has no note selected.
+  if (source_id === null) {
+    return noteMap;
+  }
 
   pending.push(source_id);
   do {

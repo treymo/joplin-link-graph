@@ -72,3 +72,22 @@ describe("buildGraphData", () => {
     });
   });
 });
+
+describe("buildGraphData with no note selected", () => {
+  it("still draws every note", () => {
+    const data = buildGraphData(noteMap(note("a", ["b"]), note("b")), null, display);
+    expect(data.nodes.map((n) => n.id).sort()).toEqual(["a", "b"]);
+  });
+
+  it("still draws the links between them", () => {
+    const data = buildGraphData(noteMap(note("a", ["b"]), note("b")), null, display);
+    expect(edgeIds(data)).toEqual(["a->b"]);
+  });
+
+  it("focuses nothing", () => {
+    const notes = noteMap(note("a", ["b"]), note("b"));
+    const data = buildGraphData(notes, null, display);
+    expect(data.edges.some((e) => e.focused)).toBe(false);
+    expect(data.nodes.some((n) => n.focused)).toBe(false);
+  });
+});
